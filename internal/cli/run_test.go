@@ -124,6 +124,9 @@ func TestRunScanReturnsTwoWhenPlatformIsUnsupported(t *testing.T) {
 
 func TestRunScanWritesReportFile(t *testing.T) {
 	output := filepath.Join(t.TempDir(), "report.json")
+	if err := os.WriteFile(output, []byte("previous report"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	var stdout, stderr bytes.Buffer
 	code := runScan(context.Background(), []string{"--root", `C:\data`, "--json", output}, &stdout, &stderr, fixedScanner{report: testScanReport(true, nil)})
 	if code != 0 {
