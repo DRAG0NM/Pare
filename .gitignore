@@ -1,0 +1,30 @@
+# Go build output
+/bin/
+/dist/
+/build/
+*.exe
+*.test
+*.out
+
+# Local scan output and logs
+/reports/
+/plans-local/
+/quarantine/
+/logs/
+*.scan.json
+*.plan.json
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.token
+
+# Editors and OS files
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
