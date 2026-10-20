@@ -14,7 +14,7 @@ import (
 	"github.com/DRAG0NM/Pare/internal/scanner"
 )
 
-const version = "dev"
+const version = "0.1.0"
 
 const usage = "Usage: pare <command> [options]\n\nCommands:\n  scan    Scan a directory tree and write a JSON report\n"
 
