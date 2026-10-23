@@ -95,6 +95,8 @@ The Wails CLI is not needed. WebView2 ships with Windows 11; on older systems th
 
 - The Windows backend uses batched directory enumeration with 8 directories read in parallel; nodes are sorted by path, so output does not depend on scheduling. It does not read the NTFS MFT. On the development machine a warm-cache scan of D: (about 326,000 entries) took 1.7 s including the JSON write; cold-cache time is not measured.
 - Reparse points are listed and their targets are not traversed.
+- When the process runs elevated, the scanner temporarily enables `SeBackupPrivilege` so folders that grant access only to SYSTEM (System Volume Information, `System32\config\BFS` and similar) can be listed; it restores the previous state afterwards. Without elevation those folders appear as `access_denied` coverage gaps.
+- Directory enumeration cannot see NTFS metadata (`$MFT` and friends) or reserved storage, so a whole-volume scan lists less than the volume's used space; on the development machine C: showed about 75 GiB listed against 89 GiB used. Tools that read the MFT, such as WizTree, can show these entries.
 - Paths remain separate entries even when they share a file ID, as with hard links. The internal `tree` package (used by the desktop app) totals subtrees per path and counts each file ID once only in the whole-tree total; the CLI does not print either total yet.
 - The scan report's volume serial comes from the root directory handle. On this machine an EFS-encrypted `AppData\Local` reported a different serial from the files inside it, so plan probes do not compare volume serials.
 - Quarantine does not free space on the volume. There is no purge command yet; emptying a batch is a manual, separate decision.

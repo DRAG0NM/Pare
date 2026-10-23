@@ -114,6 +114,9 @@ export const mockEvents = {
 let timer: ReturnType<typeof setInterval> | undefined
 
 export const mockBackend: Backend = {
+  async Elevated() {
+    return false
+  },
   async Drives(): Promise<Drive[]> {
     return [
       { root: 'C:\\', label: 'System', total: 200 * GB, free: 81.4 * GB },
@@ -136,6 +139,7 @@ export const mockBackend: Backend = {
           root: root.path, complete: false, cancelled: false, error: '', seconds: (Date.now() - started) / 1000,
           entries: root.files + root.directories, files: root.files, directories: root.directories,
           logicalSize: root.total * 0.98, allocationSize: root.total, uniqueAllocation: root.total * 0.97,
+          volumeUsed: root.total * 0.97 + 23 * GB,
           gapCount: 1, gaps: [{ path: 'D:\\System Volume Information', operation: 'enumerate', code: 'access_denied' }],
         }
         mockEvents.emit('scan:done', summary)

@@ -59,6 +59,8 @@ func (s windowsScanner) Scan(ctx context.Context, root string) (model.ScanReport
 		return report, fmt.Errorf("scan root has no volume: %q", root)
 	}
 	volume := report.Volume
+	restorePrivilege, _ := enableBackupPrivilege()
+	defer restorePrivilege()
 
 	var (
 		mu       sync.Mutex

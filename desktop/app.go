@@ -57,19 +57,22 @@ type NodeTree struct {
 }
 
 type ScanSummary struct {
-	Root             string            `json:"root"`
-	Complete         bool              `json:"complete"`
-	Cancelled        bool              `json:"cancelled"`
-	Error            string            `json:"error"`
-	Seconds          float64           `json:"seconds"`
-	Entries          int               `json:"entries"`
-	Files            int               `json:"files"`
-	Directories      int               `json:"directories"`
-	LogicalSize      uint64            `json:"logicalSize"`
-	AllocationSize   uint64            `json:"allocationSize"`
-	UniqueAllocation uint64            `json:"uniqueAllocation"`
-	GapCount         int               `json:"gapCount"`
-	Gaps             []model.ScanError `json:"gaps"`
+	Root             string  `json:"root"`
+	Complete         bool    `json:"complete"`
+	Cancelled        bool    `json:"cancelled"`
+	Error            string  `json:"error"`
+	Seconds          float64 `json:"seconds"`
+	Entries          int     `json:"entries"`
+	Files            int     `json:"files"`
+	Directories      int     `json:"directories"`
+	LogicalSize      uint64  `json:"logicalSize"`
+	AllocationSize   uint64  `json:"allocationSize"`
+	UniqueAllocation uint64  `json:"uniqueAllocation"`
+	// VolumeUsed is set when root is a whole volume, so the UI can show how much used
+	// space the scan could not list (reserved storage, NTFS metadata and the like).
+	VolumeUsed uint64            `json:"volumeUsed"`
+	GapCount   int               `json:"gapCount"`
+	Gaps       []model.ScanError `json:"gaps"`
 }
 
 // ChooseFolder opens the system folder picker; it returns "" when the user cancels.
@@ -117,6 +120,11 @@ func (a *App) StartScan(root string) error {
 		}
 		if scanErr != nil && !summary.Cancelled {
 			summary.Error = scanErr.Error()
+		}
+		if absolute == filepath.VolumeName(absolute)+`\` {
+			if total, free, ok := volumeSpace(absolute); ok {
+				summary.VolumeUsed = total - free
+			}
 		}
 
 		a.mu.Lock()

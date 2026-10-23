@@ -34,6 +34,7 @@ export type ScanSummary = {
   logicalSize: number
   allocationSize: number
   uniqueAllocation: number
+  volumeUsed: number
   gapCount: number
   gaps: ScanError[]
 }
@@ -41,6 +42,7 @@ export type ScanSummary = {
 export type Drive = { root: string; label: string; total: number; free: number }
 
 export interface Backend {
+  Elevated(): Promise<boolean>
   Drives(): Promise<Drive[]>
   ChooseFolder(): Promise<string>
   StartScan(root: string): Promise<void>

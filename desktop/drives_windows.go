@@ -13,6 +13,25 @@ type Drive struct {
 	Free  uint64 `json:"free"`
 }
 
+// Elevated reports whether the app runs with an administrator token. Only then can the
+// scanner enable the backup privilege that reads system-only folders.
+func (a *App) Elevated() bool {
+	return windows.GetCurrentProcessToken().IsElevated()
+}
+
+// volumeSpace returns the size and free space of the volume whose root is root.
+func volumeSpace(root string) (total, free uint64, ok bool) {
+	pointer, err := windows.UTF16PtrFromString(root)
+	if err != nil {
+		return 0, 0, false
+	}
+	var totalFree uint64
+	if windows.GetDiskFreeSpaceEx(pointer, &free, &total, &totalFree) != nil {
+		return 0, 0, false
+	}
+	return total, free, true
+}
+
 // Drives lists local fixed and removable drives. Network and optical drives are left out.
 func (a *App) Drives() []Drive {
 	mask, err := windows.GetLogicalDrives()

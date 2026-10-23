@@ -5,9 +5,11 @@
 
   let { onScan, error }: { onScan: (root: string) => void; error: string } = $props()
   let drives = $state<Drive[]>([])
+  let elevated = $state<boolean | null>(null)
 
   onMount(async () => {
     drives = (await backend.Drives()) ?? []
+    elevated = await backend.Elevated()
   })
 
   async function chooseFolder() {
@@ -39,9 +41,13 @@
 
   {#if error}<p class="error">扫描未能开始：{error}</p>{/if}
 
-  <p class="muted small note">
-    以普通权限运行时，系统保护的目录可能读不到。这些位置会在结果里单独标出，不会被算成 0。
-  </p>
+  {#if elevated === true}
+    <p class="muted small note">已以管理员身份运行，可以读取只对系统开放的目录。</p>
+  {:else if elevated === false}
+    <p class="muted small note warn-note">
+      当前不是管理员身份，System Volume Information 等只对系统开放的目录会读不到。它们会在结果里单独列出，不会被算成 0；需要完整结果时，请右键“以管理员身份运行”。
+    </p>
+  {/if}
 </div>
 
 <style>
@@ -98,5 +104,8 @@
   .note {
     border-top: 1px solid var(--border);
     padding-top: 16px;
+  }
+  .warn-note {
+    color: var(--warn);
   }
 </style>
