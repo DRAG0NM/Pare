@@ -14,6 +14,10 @@ func NewWindowsScanner() Scanner {
 	return unsupportedWindowsScanner{}
 }
 
+func NewWindowsScannerWithOptions(Options) Scanner {
+	return unsupportedWindowsScanner{}
+}
+
 func (unsupportedWindowsScanner) Scan(context.Context, string) (model.ScanReport, error) {
 	return model.ScanReport{}, ErrUnsupportedPlatform
 }
