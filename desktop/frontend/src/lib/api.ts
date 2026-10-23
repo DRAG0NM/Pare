@@ -41,6 +41,41 @@ export type ScanSummary = {
 
 export type Drive = { root: string; label: string; total: number; free: number }
 
+export type EvidenceStatus = 'pass' | 'fail' | 'unknown' | 'error'
+export type Evidence = { kind: string; status: EvidenceStatus; detail: string }
+
+export type CandidateItem = {
+  path: string
+  name: string
+  directory: string
+  logicalSize: number
+  allocationSize: number
+  lastWriteTime: string
+  risk: string
+  executable: boolean
+  evidence: Evidence[]
+}
+
+export type CandidateGroup = {
+  ruleId: string
+  description: string
+  risk: string
+  minAgeDays: number
+  candidates: number
+  executable: number
+  executableAllocation: number
+  items: CandidateItem[]
+}
+
+export type CandidateView = {
+  digest: string
+  createdAt: string
+  expiresAt: string
+  rulesVersion: string
+  groups: CandidateGroup[]
+  rules: CandidateGroup[]
+}
+
 export interface Backend {
   Elevated(): Promise<boolean>
   Drives(): Promise<Drive[]>
@@ -50,6 +85,7 @@ export interface Backend {
   Children(path: string, limit: number): Promise<NodeView[]>
   Subtree(path: string, depth: number, limit: number): Promise<NodeTree>
   Reveal(path: string): Promise<void>
+  BuildCandidates(refresh: boolean): Promise<CandidateView>
 }
 
 const host = window as unknown as {

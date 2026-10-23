@@ -26,6 +26,8 @@ type App struct {
 	cancel context.CancelFunc
 	tree   *tree.Tree
 	report model.ScanReport
+	// plan is the latest plan built from report; a new scan discards it.
+	plan *model.Plan
 }
 
 func NewApp() *App {
@@ -130,7 +132,7 @@ func (a *App) StartScan(root string) error {
 		a.mu.Lock()
 		a.cancel = nil
 		if !summary.Cancelled {
-			a.tree, a.report = built, report
+			a.tree, a.report, a.plan = built, report, nil
 		}
 		a.mu.Unlock()
 		cancel()

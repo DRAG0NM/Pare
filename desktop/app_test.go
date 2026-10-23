@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/DRAG0NM/Pare/internal/model"
+	"github.com/DRAG0NM/Pare/internal/rules"
 	"github.com/DRAG0NM/Pare/internal/tree"
 )
 
@@ -41,5 +42,28 @@ func TestSubtreeKeepsTotalsWhenTrimmed(t *testing.T) {
 	}
 	if leaf := subtree(testTree().Root, 0, 2); len(leaf.Children) != 0 {
 		t.Fatal("depth 0 must not include children")
+	}
+}
+
+func TestCandidateViewGroupsByRuleExecutableFirst(t *testing.T) {
+	ruleSet := rules.Builtin()
+	p := model.Plan{Items: []model.PlanItem{
+		{Path: `C:\Users\me\AppData\Local\Temp\small.tmp`, RuleID: "user-temp", AllocationSize: 10, Executable: true},
+		{Path: `C:\Users\me\AppData\Local\Temp\big-but-new.tmp`, RuleID: "user-temp", AllocationSize: 900},
+		{Path: `C:\Users\me\AppData\Local\Temp\big.tmp`, RuleID: "user-temp", AllocationSize: 500, Executable: true},
+		{Path: `C:\Users\me\AppData\Local\pip\cache\x`, RuleID: "pip-cache", AllocationSize: 5, Executable: true},
+	}}
+
+	view := candidateView(p, ruleSet)
+
+	if len(view.Rules) != len(ruleSet) || len(view.Groups) != 2 || view.Groups[0].RuleID != "user-temp" {
+		t.Fatalf("groups = %+v", view.Groups)
+	}
+	temp := view.Groups[0]
+	if temp.Candidates != 3 || temp.Executable != 2 || temp.ExecutableAllocation != 510 || temp.MinAgeDays != 7 {
+		t.Fatalf("user-temp group = %+v", temp)
+	}
+	if names := []string{temp.Items[0].Name, temp.Items[1].Name, temp.Items[2].Name}; names[0] != "big.tmp" || names[1] != "small.tmp" || names[2] != "big-but-new.tmp" {
+		t.Fatalf("item order = %v, want executable first, then by size", names)
 	}
 }

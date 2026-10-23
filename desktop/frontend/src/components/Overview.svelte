@@ -6,7 +6,7 @@
   import TreeRow from './TreeRow.svelte'
   import Treemap from './Treemap.svelte'
 
-  let { summary, onRescan, onHome }: { summary: ScanSummary; onRescan: () => void; onHome: () => void } = $props()
+  let { summary, onRescan, onHome, onDecide }: { summary: ScanSummary; onRescan: () => void; onHome: () => void; onDecide?: () => void } = $props()
 
   let selected = $state(summary.root)
   const expanded = new SvelteSet<string>([summary.root])
@@ -83,6 +83,7 @@
     <div class="actions">
       <button onclick={onRescan}>重新扫描</button>
       <button onclick={onHome}>换个位置</button>
+      {#if onDecide}<button class="primary" onclick={onDecide}>去挑选要清理的 →</button>{/if}
     </div>
   </section>
 

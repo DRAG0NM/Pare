@@ -1,17 +1,20 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { SvelteSet } from 'svelte/reactivity'
+  import Decide from './components/Decide.svelte'
   import { backend, isMock, onEvent, type Progress, type ScanSummary } from './lib/api'
   import Home from './components/Home.svelte'
   import Scanning from './components/Scanning.svelte'
   import Overview from './components/Overview.svelte'
 
-  type View = 'home' | 'scanning' | 'overview'
+  type View = 'home' | 'scanning' | 'overview' | 'decide'
 
   let view = $state<View>('home')
   let target = $state('')
   let progress = $state<Progress>({ entries: 0, directories: 0, current: '', done: false })
   let summary = $state<ScanSummary | null>(null)
   let error = $state('')
+  const selection = new SvelteSet<string>()
 
   onMount(() => {
     const offProgress = onEvent<Progress>('scan:progress', (p) => (progress = p))
@@ -36,6 +39,7 @@
 
   async function scan(root: string) {
     error = ''
+    selection.clear()
     target = root
     progress = { entries: 0, directories: 0, current: '', done: false }
     try {
@@ -48,9 +52,16 @@
 
   const stages = [
     { id: 'see', label: '看清', hint: '扫描并查看空间去向' },
-    { id: 'decide', label: '决定', hint: '下一版本：查看清理候选与证据' },
+    { id: 'decide', label: '决定', hint: '按规则核对后挑选要清理的文件' },
     { id: 'undo', label: '撤回', hint: '下一版本：管理隔离区与撤回' },
   ]
+  const stageIndex = $derived(view === 'decide' ? 1 : 0)
+
+  function goStage(i: number) {
+    if (!summary) return
+    if (i === 0) view = 'overview'
+    else if (i === 1) view = 'decide'
+  }
 </script>
 
 <div class="shell">
@@ -58,7 +69,7 @@
     <div class="brand">Pare</div>
     <nav>
       {#each stages as stage, i}
-        <button class="stage" class:active={i === 0} disabled={i !== 0} title={stage.hint}>
+        <button class="stage" class:active={i === stageIndex} disabled={i === 2 || !summary || view === 'scanning'} onclick={() => goStage(i)} title={stage.hint}>
           <span class="step">{i + 1}</span>{stage.label}
         </button>
       {/each}
@@ -71,8 +82,10 @@
       <Home onScan={scan} {error} />
     {:else if view === 'scanning'}
       <Scanning {target} {progress} onCancel={() => backend.CancelScan()} />
+    {:else if view === 'decide'}
+      <Decide {selection} onBack={() => (view = 'overview')} />
     {:else if summary}
-      <Overview {summary} onRescan={() => scan(summary!.root)} onHome={() => (view = 'home')} />
+      <Overview {summary} onDecide={() => (view = 'decide')} onRescan={() => scan(summary!.root)} onHome={() => (view = 'home')} />
     {/if}
   </main>
 </div>

@@ -1,5 +1,5 @@
 // A deterministic fake disk for running the UI in a browser. Never used in the desktop app.
-import type { Backend, Drive, NodeTree, NodeView, Progress, ScanSummary } from './api'
+import type { Backend, CandidateGroup, CandidateItem, CandidateView, Drive, Evidence, NodeTree, NodeView, Progress, ScanSummary } from './api'
 
 type FakeNode = { name: string; kind: string; size: number; children: FakeNode[]; incomplete?: boolean }
 
@@ -99,6 +99,59 @@ function subtree(node: Indexed, depth: number, limit: number): NodeTree {
   return result
 }
 
+const DAY = 86_400_000
+
+function mockGroup(ruleId: string, description: string, minAgeDays: number, folder: string): CandidateGroup {
+  const files = (index.get(folder)?.children ?? []) as Indexed[]
+  const items: CandidateItem[] = files.map((file, i) => {
+    const age = i % 4 === 0 ? 2 : 30 + (i % 50)
+    const evidence: Evidence[] = [
+      { kind: 'path_rule', status: 'pass', detail: description },
+      { kind: 'attributes', status: 'pass', detail: 'not a system file' },
+      i === 7
+        ? { kind: 'file_identity', status: 'fail', detail: 'file ID appears at 2 paths (hard link)' }
+        : { kind: 'file_identity', status: 'pass', detail: 'single path for file ID' },
+      { kind: 'age', status: age >= minAgeDays ? 'pass' : 'fail', detail: `written ${age} days ago, rule requires ${minAgeDays}` },
+    ]
+    if (evidence.every((e) => e.status === 'pass')) {
+      const locked = i % 13 === 5
+      evidence.push(
+        locked ? { kind: 'unchanged', status: 'unknown', detail: 'file is open in another process' } : { kind: 'unchanged', status: 'pass', detail: 'file ID, size and last write time match the scan' },
+        locked ? { kind: 'unlocked', status: 'fail', detail: 'file is open in another process' } : { kind: 'unlocked', status: 'pass', detail: 'exclusive read open succeeded' },
+      )
+    }
+    return {
+      path: file.path, name: file.name, directory: folder, logicalSize: file.total * 0.98, allocationSize: file.total,
+      lastWriteTime: new Date(Date.now() - age * DAY).toISOString(), risk: 'E1',
+      executable: evidence.length === 6 && evidence.every((e) => e.status === 'pass'), evidence,
+    }
+  })
+  items.sort((a, b) => Number(b.executable) - Number(a.executable) || b.allocationSize - a.allocationSize)
+  const executable = items.filter((item) => item.executable)
+  return {
+    ruleId, description, risk: 'E1', minAgeDays, candidates: items.length, executable: executable.length,
+    executableAllocation: executable.reduce((sum, item) => sum + item.allocationSize, 0), items,
+  }
+}
+
+function mockCandidates(): CandidateView {
+  const rules = [
+    { ruleId: 'user-temp', description: 'Per-user temporary files', days: 7 },
+    { ruleId: 'npm-cache', description: 'npm content cache; npm re-downloads missing entries', days: 30 },
+    { ruleId: 'pip-cache', description: 'pip download and wheel cache', days: 30 },
+    { ruleId: 'go-build-cache', description: 'Go build cache; go rebuilds missing entries', days: 30 },
+  ]
+  const groups = [
+    mockGroup('user-temp', rules[0].description, 7, 'D:\\Users\\me\\AppData\\Local\\Temp'),
+    mockGroup('npm-cache', rules[1].description, 30, 'D:\\Users\\me\\AppData\\Local\\npm-cache'),
+  ].sort((a, b) => b.executableAllocation - a.executableAllocation)
+  return {
+    digest: 'sha256:mock', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + DAY).toISOString(), rulesVersion: 'builtin/1',
+    groups,
+    rules: rules.map((r) => ({ ruleId: r.ruleId, description: r.description, risk: 'E1', minAgeDays: r.days, candidates: 0, executable: 0, executableAllocation: 0, items: [] })),
+  }
+}
+
 const listeners = new Map<string, Set<(data: unknown) => void>>()
 export const mockEvents = {
   on(name: string, callback: (data: unknown) => void) {
@@ -161,4 +214,8 @@ export const mockBackend: Backend = {
     return subtree(node, depth, limit)
   },
   async Reveal() {},
+  async BuildCandidates() {
+    await new Promise((resolve) => setTimeout(resolve, 600))
+    return mockCandidates()
+  },
 }
