@@ -79,14 +79,26 @@ Files that fail a check are `skipped` and stay where they are. The quarantine de
 
 Exit codes: 0 every item moved (or restored), 2 invalid arguments or missing confirmation, 3 some items skipped, failed or in conflict, 4 plan or manifest rejected or unreadable.
 
+## Desktop app (preview)
+
+`desktop/` is a Wails v2 app (Go backend, Svelte frontend in WebView2) that builds into a single `pare-desktop.exe`. This first version covers the "看清" (see) stage: pick a drive or folder, watch scan progress, then browse a directory tree linked to a treemap of the selected folder, with coverage gaps listed and incomplete folders marked. Planning, quarantine and undo stay in the CLI for now. The UI is Chinese only.
+
+```powershell
+pnpm --dir desktop/frontend install
+pnpm --dir desktop/frontend build
+go build -tags desktop,production -ldflags "-w -s -H windowsgui" -o pare-desktop.exe ./desktop
+```
+
+The Wails CLI is not needed. WebView2 ships with Windows 11; on older systems the Evergreen runtime must be installed. `pnpm --dir desktop/frontend dev` serves the UI in a browser with built-in demo data (shown with a "演示数据" badge) for layout work without Windows APIs. Licenses of everything compiled into the exe are collected in [desktop/THIRD_PARTY_LICENSES.txt](desktop/THIRD_PARTY_LICENSES.txt).
+
 ## Current limits
 
 - The Windows backend uses batched directory enumeration with 8 directories read in parallel; nodes are sorted by path, so output does not depend on scheduling. It does not read the NTFS MFT. On the development machine a warm-cache scan of D: (about 326,000 entries) took 1.7 s including the JSON write; cold-cache time is not measured.
 - Reparse points are listed and their targets are not traversed.
-- Paths remain separate entries even when they share a file ID, as with hard links. The internal `tree` package (used by the coming desktop UI) totals subtrees per path and counts each file ID once only in the whole-tree total; the CLI does not print either total yet.
+- Paths remain separate entries even when they share a file ID, as with hard links. The internal `tree` package (used by the desktop app) totals subtrees per path and counts each file ID once only in the whole-tree total; the CLI does not print either total yet.
 - The scan report's volume serial comes from the root directory handle. On this machine an EFS-encrypted `AppData\Local` reported a different serial from the files inside it, so plan probes do not compare volume serials.
 - Quarantine does not free space on the volume. There is no purge command yet; emptying a batch is a manual, separate decision.
-- Cross-volume quarantine, system maintenance, an Agent adapter and a desktop interface are not included.
+- Cross-volume quarantine, system maintenance and an Agent adapter are not included. The desktop app cannot plan, quarantine or undo yet, and has no elevated rescan.
 - The reparse-point integration test uses a symlink or junction; it skips only when Windows denies creation of both.
 
 ## Development
