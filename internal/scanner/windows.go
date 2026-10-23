@@ -110,7 +110,7 @@ func (windowsScanner) Scan(ctx context.Context, root string) (model.ScanReport, 
 }
 
 func enumerateWindowsDirectory(ctx context.Context, path string) ([]fileIDDirectoryRecord, uint32, error) {
-	apiPath, err := windowsPath(path)
+	apiPath, err := WindowsPath(path)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -169,7 +169,8 @@ func enumerateWindowsDirectory(ctx context.Context, path string) ([]fileIDDirect
 	}
 }
 
-func windowsPath(path string) (string, error) {
+// WindowsPath converts path to an absolute extended-length path for Win32 calls.
+func WindowsPath(path string) (string, error) {
 	absolute, err := filepath.Abs(path)
 	if err != nil {
 		return "", err
