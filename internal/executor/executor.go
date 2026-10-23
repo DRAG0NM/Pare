@@ -1,0 +1,270 @@
+// Package executor moves planned files into a same-volume quarantine and restores them.
+//
+// Every move follows the same order: record intent in the manifest, open the file with
+// exclusive access, re-check its identity on that handle, then rename through the same
+// handle without replacing anything. A file that cannot pass every step stays where it is.
+package executor
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/DRAG0NM/Pare/internal/model"
+	"github.com/DRAG0NM/Pare/internal/plan"
+	"github.com/DRAG0NM/Pare/internal/report"
+)
+
+const ManifestName = "manifest.json"
+
+const fileAttributeSystem = 0x4
+
+var (
+	ErrUnsupportedPlatform = errors.New("quarantine is only available on Windows")
+	ErrNothingToApply      = errors.New("plan has no executable items")
+	ErrUnconfirmed         = errors.New("confirmation does not match the plan digest")
+
+	errInUse   = errors.New("file is open in another process")
+	errMissing = errors.New("file does not exist")
+	errExists  = errors.New("destination already exists")
+)
+
+type fileInfo struct {
+	FileID     string
+	Size       uint64
+	LastWrite  time.Time
+	Attributes uint32
+	Reparse    bool
+}
+
+// lockedFile is a file opened with exclusive access and permission to rename it.
+type lockedFile interface {
+	Info() (fileInfo, error)
+	Rename(destination string) error
+	Close() error
+}
+
+var openLocked func(path string) (lockedFile, error)
+var hasReparseAncestor func(path string) (bool, error)
+
+// DefaultQuarantineRoot is the hidden-by-convention directory at the root of a file's volume.
+func DefaultQuarantineRoot(path string) string {
+	return filepath.VolumeName(path) + `\.pare-quarantine`
+}
+
+// Apply quarantines every executable item of a verified plan. confirm must equal the plan
+// digest, which ties the action to the plan the user reviewed. The manifest is written
+// before each move, so a failure to persist it stops the run without moving anything more.
+func Apply(ctx context.Context, p model.Plan, confirm, root string, now time.Time) (model.Execution, string, error) {
+	if openLocked == nil {
+		return model.Execution{}, "", ErrUnsupportedPlatform
+	}
+	if err := plan.Verify(p, now); err != nil {
+		return model.Execution{}, "", err
+	}
+	if confirm != p.Digest {
+		return model.Execution{}, "", ErrUnconfirmed
+	}
+	var items []model.PlanItem
+	for _, item := range p.Items {
+		if item.Executable {
+			items = append(items, item)
+		}
+	}
+	if len(items) == 0 {
+		return model.Execution{}, "", ErrNothingToApply
+	}
+	for _, item := range items {
+		if !strings.EqualFold(filepath.VolumeName(item.Path), filepath.VolumeName(root)) {
+			return model.Execution{}, "", fmt.Errorf("quarantine %q is not on the volume of %q", root, item.Path)
+		}
+	}
+
+	batch := filepath.Join(root, now.UTC().Format("20060102-150405")+"-"+strings.TrimPrefix(p.Digest, "sha256:")[:12])
+	if err := os.MkdirAll(root, 0o700); err != nil {
+		return model.Execution{}, "", err
+	}
+	if err := os.Mkdir(batch, 0o700); err != nil {
+		return model.Execution{}, "", fmt.Errorf("create batch directory: %w", err)
+	}
+	if err := os.Mkdir(filepath.Join(batch, "files"), 0o700); err != nil {
+		return model.Execution{}, "", err
+	}
+	if reparse, err := hasReparseAncestor(filepath.Join(batch, "files", "x")); err != nil || reparse {
+		return model.Execution{}, "", fmt.Errorf("quarantine path %q passes through a reparse point or cannot be checked: %v", batch, err)
+	}
+
+	execution := model.Execution{
+		Schema:        model.ExecutionSchema,
+		PlanDigest:    p.Digest,
+		CreatedAt:     now.UTC(),
+		UpdatedAt:     now.UTC(),
+		QuarantineDir: batch,
+	}
+	for index, item := range items {
+		execution.Items = append(execution.Items, model.ExecutionItem{
+			OriginalPath:   item.Path,
+			QuarantinePath: filepath.Join(batch, "files", fmt.Sprintf("%06d-%s", index, filepath.Base(item.Path))),
+			FileID:         item.FileID,
+			LogicalSize:    item.LogicalSize,
+			AllocationSize: item.AllocationSize,
+			LastWriteTime:  item.LastWriteTime,
+			State:          model.StatePending,
+		})
+	}
+	manifest := filepath.Join(batch, ManifestName)
+	if err := writeManifest(manifest, &execution); err != nil {
+		return execution, manifest, err
+	}
+
+	for i := range execution.Items {
+		if err := ctx.Err(); err != nil {
+			return execution, manifest, err
+		}
+		item := &execution.Items[i]
+		item.State = model.StateIntent
+		if err := writeManifest(manifest, &execution); err != nil {
+			return execution, manifest, err
+		}
+		item.State, item.Detail = quarantine(*item)
+		if err := writeManifest(manifest, &execution); err != nil {
+			return execution, manifest, err
+		}
+	}
+	return execution, manifest, nil
+}
+
+func quarantine(item model.ExecutionItem) (model.ExecutionState, string) {
+	if reparse, err := hasReparseAncestor(item.OriginalPath); err != nil {
+		return model.StateSkipped, "cannot check parent directories: " + err.Error()
+	} else if reparse {
+		return model.StateSkipped, "a parent directory is a reparse point"
+	}
+	file, err := openLocked(item.OriginalPath)
+	if err != nil {
+		return model.StateSkipped, err.Error()
+	}
+	defer file.Close()
+	info, err := file.Info()
+	if err != nil {
+		return model.StateSkipped, err.Error()
+	}
+	if changes := compare(item, info); changes != "" {
+		return model.StateSkipped, "changed since plan: " + changes
+	}
+	if err := file.Rename(item.QuarantinePath); err != nil {
+		return model.StateFailed, "move failed: " + err.Error()
+	}
+	return model.StateQuarantined, ""
+}
+
+func compare(item model.ExecutionItem, info fileInfo) string {
+	var changes []string
+	if info.FileID != item.FileID {
+		changes = append(changes, "file_id")
+	}
+	if info.Size != uint64(item.LogicalSize) {
+		changes = append(changes, "size")
+	}
+	if !info.LastWrite.Equal(item.LastWriteTime) {
+		changes = append(changes, "last_write_time")
+	}
+	if info.Reparse {
+		changes = append(changes, "reparse")
+	}
+	if info.Attributes&fileAttributeSystem != 0 {
+		changes = append(changes, "system")
+	}
+	return strings.Join(changes, ", ")
+}
+
+// Undo moves quarantined files back. It never replaces a file at the original path; such
+// items become conflicts and stay in quarantine.
+func Undo(ctx context.Context, manifest string, now time.Time) (model.Execution, error) {
+	if openLocked == nil {
+		return model.Execution{}, ErrUnsupportedPlatform
+	}
+	data, err := os.ReadFile(manifest)
+	if err != nil {
+		return model.Execution{}, err
+	}
+	var execution model.Execution
+	if err := json.Unmarshal(data, &execution); err != nil {
+		return model.Execution{}, fmt.Errorf("parse manifest: %w", err)
+	}
+	execution.UpdatedAt = now.UTC()
+
+	for i := range execution.Items {
+		if err := ctx.Err(); err != nil {
+			return execution, err
+		}
+		item := &execution.Items[i]
+		if item.State != model.StateQuarantined && item.State != model.StateIntent && item.State != model.StateConflict {
+			continue
+		}
+		item.State, item.Detail = restore(*item)
+		if err := writeManifest(manifest, &execution); err != nil {
+			return execution, err
+		}
+	}
+	return execution, nil
+}
+
+func restore(item model.ExecutionItem) (model.ExecutionState, string) {
+	file, err := openLocked(item.QuarantinePath)
+	if errors.Is(err, errMissing) && item.State == model.StateIntent {
+		// The move never happened; the file is still at its original path or gone.
+		return model.StateSkipped, "not moved before the run stopped"
+	}
+	if err != nil {
+		return item.State, "cannot open quarantined file: " + err.Error()
+	}
+	defer file.Close()
+	info, err := file.Info()
+	if err != nil {
+		return item.State, err.Error()
+	}
+	if info.FileID != item.FileID {
+		return item.State, "quarantined file has a different file ID"
+	}
+	if err := os.MkdirAll(filepath.Dir(item.OriginalPath), 0o700); err != nil {
+		return item.State, "recreate parent directory: " + err.Error()
+	}
+	if reparse, err := hasReparseAncestor(item.OriginalPath); err != nil || reparse {
+		return item.State, "original parent directory is a reparse point or cannot be checked"
+	}
+	if err := file.Rename(item.OriginalPath); errors.Is(err, errExists) {
+		return model.StateConflict, "original path is occupied; file kept in quarantine"
+	} else if err != nil {
+		return item.State, "restore failed: " + err.Error()
+	}
+	return model.StateRestored, ""
+}
+
+func writeManifest(path string, execution *model.Execution) error {
+	temporary, err := os.CreateTemp(filepath.Dir(path), ".manifest-*")
+	if err != nil {
+		return fmt.Errorf("write manifest: %w", err)
+	}
+	defer os.Remove(temporary.Name())
+	if err := report.WriteJSON(temporary, execution); err != nil {
+		temporary.Close()
+		return fmt.Errorf("write manifest: %w", err)
+	}
+	if err := temporary.Sync(); err != nil {
+		temporary.Close()
+		return fmt.Errorf("write manifest: %w", err)
+	}
+	if err := temporary.Close(); err != nil {
+		return fmt.Errorf("write manifest: %w", err)
+	}
+	if err := os.Rename(temporary.Name(), path); err != nil {
+		return fmt.Errorf("write manifest: %w", err)
+	}
+	return nil
+}
