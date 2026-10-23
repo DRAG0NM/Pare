@@ -61,7 +61,7 @@ func TestApplyAndUndo(t *testing.T) {
 	root, reviewed := buildPlan(t, "a.tmp", "b.tmp", "changed.tmp", "locked.tmp")
 	quarantineRoot := filepath.Join(t.TempDir(), "quarantine")
 
-	if _, _, err := Apply(context.Background(), reviewed, "sha256:wrong", quarantineRoot, time.Now()); !errors.Is(err, ErrUnconfirmed) {
+	if _, _, err := Apply(context.Background(), reviewed, nil, "sha256:wrong", quarantineRoot, time.Now()); !errors.Is(err, ErrUnconfirmed) {
 		t.Fatalf("Apply(wrong digest) = %v, want ErrUnconfirmed", err)
 	}
 	if _, err := os.Stat(quarantineRoot); !os.IsNotExist(err) {
@@ -76,7 +76,7 @@ func TestApplyAndUndo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	execution, manifest, err := Apply(context.Background(), reviewed, reviewed.Digest, quarantineRoot, time.Now())
+	execution, manifest, err := Apply(context.Background(), reviewed, nil, reviewed.Digest, quarantineRoot, time.Now())
 	windows.CloseHandle(handle)
 	if err != nil {
 		t.Fatal(err)
@@ -142,10 +142,10 @@ func TestApplyRejectsInvalidPlans(t *testing.T) {
 	tampered := reviewed
 	tampered.Items = append([]model.PlanItem(nil), reviewed.Items...)
 	tampered.Items[0].Path = `C:\Windows\System32\kernel32.dll`
-	if _, _, err := Apply(context.Background(), tampered, reviewed.Digest, quarantineRoot, time.Now()); !errors.Is(err, plan.ErrTampered) {
+	if _, _, err := Apply(context.Background(), tampered, nil, reviewed.Digest, quarantineRoot, time.Now()); !errors.Is(err, plan.ErrTampered) {
 		t.Errorf("Apply(tampered) = %v, want ErrTampered", err)
 	}
-	if _, _, err := Apply(context.Background(), reviewed, reviewed.Digest, quarantineRoot, time.Now().Add(2*time.Hour)); !errors.Is(err, plan.ErrExpired) {
+	if _, _, err := Apply(context.Background(), reviewed, nil, reviewed.Digest, quarantineRoot, time.Now().Add(2*time.Hour)); !errors.Is(err, plan.ErrExpired) {
 		t.Errorf("Apply(expired) = %v, want ErrExpired", err)
 	}
 	if _, err := os.Stat(quarantineRoot); !os.IsNotExist(err) {
@@ -172,5 +172,31 @@ func TestUndoTreatsUnmovedIntentAsSkipped(t *testing.T) {
 	}
 	if _, err := os.Stat(original); err != nil {
 		t.Fatalf("original file disturbed: %v", err)
+	}
+}
+
+func TestApplyMovesOnlySelectedItems(t *testing.T) {
+	root, reviewed := buildPlan(t, "a.tmp", "b.tmp")
+	quarantineRoot := filepath.Join(t.TempDir(), "quarantine")
+	a, b := filepath.Join(root, "a.tmp"), filepath.Join(root, "b.tmp")
+
+	for _, selection := range [][]string{{a, `C:\Windows\notepad.exe`}, {a, a}} {
+		if _, _, err := Apply(context.Background(), reviewed, selection, reviewed.Digest, quarantineRoot, time.Now()); !errors.Is(err, ErrNotExecutable) {
+			t.Errorf("Apply(%v) = %v, want ErrNotExecutable", selection, err)
+		}
+	}
+	if _, err := os.Stat(quarantineRoot); !os.IsNotExist(err) {
+		t.Fatalf("rejected selection created %s", quarantineRoot)
+	}
+
+	execution, _, err := Apply(context.Background(), reviewed, []string{b}, reviewed.Digest, quarantineRoot, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(execution.Items) != 1 || execution.Items[0].OriginalPath != b || execution.Items[0].State != model.StateQuarantined {
+		t.Fatalf("execution = %#v, want only b.tmp quarantined", execution.Items)
+	}
+	if _, err := os.Stat(a); err != nil {
+		t.Fatalf("unselected a.tmp moved: %v", err)
 	}
 }

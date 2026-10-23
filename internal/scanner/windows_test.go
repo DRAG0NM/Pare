@@ -5,12 +5,14 @@ package scanner
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"golang.org/x/sys/windows"
 
@@ -153,4 +155,47 @@ func findNode(nodes []model.Node, path string) *model.Node {
 		}
 	}
 	return nil
+}
+
+func TestWindowsScannerWorkersAgreeAndReportProgress(t *testing.T) {
+	root := t.TempDir()
+	for i := range 20 {
+		directory := filepath.Join(root, fmt.Sprintf("d%02d", i), "nested")
+		if err := os.MkdirAll(directory, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(directory, "f.bin"), []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	single, err := NewWindowsScannerWithOptions(Options{Workers: 1}).Scan(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var updates []Progress
+	parallel, err := NewWindowsScannerWithOptions(Options{
+		Workers:          8,
+		Progress:         func(p Progress) { updates = append(updates, p) },
+		ProgressInterval: time.Millisecond,
+	}).Scan(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(single.Nodes) != 60 || len(parallel.Nodes) != len(single.Nodes) || single.Volume != parallel.Volume {
+		t.Fatalf("nodes: single %d, parallel %d; volumes %q %q", len(single.Nodes), len(parallel.Nodes), single.Volume, parallel.Volume)
+	}
+	// NTFS updates a directory's timestamp in its parent's index lazily, so two scans of a
+	// freshly written tree may differ there; compare identity and sizes only.
+	for i := range single.Nodes {
+		a, b := single.Nodes[i], parallel.Nodes[i]
+		if a.Path != b.Path || a.Kind != b.Kind || a.FileID != b.FileID || a.LogicalSize != b.LogicalSize || a.AllocationSize != b.AllocationSize {
+			t.Fatalf("node %d differs: %+v vs %+v", i, single.Nodes[i], parallel.Nodes[i])
+		}
+	}
+	last := updates[len(updates)-1]
+	if !last.Done || last.Entries != 60 || last.Directories != 41 {
+		t.Fatalf("final progress = %+v, want done with 60 entries and 41 directories", last)
+	}
 }

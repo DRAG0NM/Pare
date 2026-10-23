@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -18,13 +20,27 @@ import (
 
 const directoryBufferSize = 64 * 1024
 
-type windowsScanner struct{}
-
-func NewWindowsScanner() Scanner {
-	return windowsScanner{}
+type windowsScanner struct {
+	options Options
 }
 
-func (windowsScanner) Scan(ctx context.Context, root string) (model.ScanReport, error) {
+func NewWindowsScanner() Scanner {
+	return NewWindowsScannerWithOptions(Options{})
+}
+
+func NewWindowsScannerWithOptions(options Options) Scanner {
+	if options.Workers < 1 {
+		options.Workers = DefaultWorkers
+	}
+	if options.ProgressInterval <= 0 {
+		options.ProgressInterval = DefaultProgressInterval
+	}
+	return windowsScanner{options: options}
+}
+
+// Scan reads directories with a fixed pool of workers sharing one queue. Nodes and
+// errors are sorted by path at the end, so the report does not depend on scheduling.
+func (s windowsScanner) Scan(ctx context.Context, root string) (model.ScanReport, error) {
 	started := time.Now().UTC()
 	report := model.ScanReport{
 		Schema:    model.ScanSchema,
@@ -42,71 +58,148 @@ func (windowsScanner) Scan(ctx context.Context, root string) (model.ScanReport, 
 	if report.Volume == "" {
 		return report, fmt.Errorf("scan root has no volume: %q", root)
 	}
+	volume := report.Volume
 
-	pending := []string{absoluteRoot}
-	for len(pending) != 0 {
-		if err := ctx.Err(); err != nil {
-			report.Complete = false
-			report.CompletedAt = time.Now().UTC()
-			return report, err
-		}
-		directory := pending[0]
-		pending = pending[1:]
-		records, serial, err := enumerateWindowsDirectory(ctx, directory)
-		if err != nil {
-			if ctx.Err() != nil {
+	var (
+		mu       sync.Mutex
+		wake     = sync.NewCond(&mu)
+		queue    = []string{absoluteRoot}
+		pending  = 1
+		progress Progress
+	)
+	worker := func() {
+		mu.Lock()
+		defer mu.Unlock()
+		for {
+			for len(queue) == 0 && pending > 0 {
+				wake.Wait()
+			}
+			if pending == 0 {
+				return
+			}
+			directory := queue[len(queue)-1]
+			queue = queue[:len(queue)-1]
+			progress.Current = directory
+			mu.Unlock()
+
+			var records []fileIDDirectoryRecord
+			var serial uint32
+			var readErr error
+			if ctx.Err() == nil {
+				records, serial, readErr = enumerateWindowsDirectory(ctx, directory)
+			}
+			nodes, children := directoryNodes(directory, records)
+
+			mu.Lock()
+			switch {
+			case ctx.Err() != nil:
 				report.Complete = false
-				report.CompletedAt = time.Now().UTC()
-				return report, ctx.Err()
-			}
-			report.Complete = false
-			report.Errors = append(report.Errors, model.ScanError{
-				Path: directory, Operation: "enumerate", Code: windowsErrorCode(err),
-			})
-			continue
-		}
-		if directory == absoluteRoot {
-			report.Volume = fmt.Sprintf("%s:%08x", report.Volume, serial)
-		}
-
-		for _, record := range records {
-			if err := ctx.Err(); err != nil {
+				children = nil
+			case readErr != nil:
 				report.Complete = false
-				report.CompletedAt = time.Now().UTC()
-				return report, err
+				report.Errors = append(report.Errors, model.ScanError{
+					Path: directory, Operation: "enumerate", Code: windowsErrorCode(readErr),
+				})
+				nodes, children = nil, nil
+			default:
+				if directory == absoluteRoot {
+					report.Volume = fmt.Sprintf("%s:%08x", volume, serial)
+				}
+				report.Nodes = append(report.Nodes, nodes...)
 			}
-			if record.name == "." || record.name == ".." {
-				continue
+			progress.Entries = len(report.Nodes)
+			progress.Directories++
+			queue = append(queue, children...)
+			pending += len(children) - 1
+			if pending == 0 || len(children) > 0 {
+				wake.Broadcast()
 			}
-
-			path := filepath.Join(directory, record.name)
-			kind := "file"
-			if record.attributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 {
-				kind = "reparse"
-			} else if record.attributes&windows.FILE_ATTRIBUTE_DIRECTORY != 0 {
-				kind = "directory"
-				pending = append(pending, path)
-			}
-
-			fileID := ""
-			if record.fileID != 0 {
-				fileID = fmt.Sprintf("%016x", record.fileID)
-			}
-			report.Nodes = append(report.Nodes, model.Node{
-				Path:           path,
-				ParentPath:     directory,
-				Kind:           kind,
-				FileID:         fileID,
-				LogicalSize:    model.ByteCount(record.logicalSize),
-				AllocationSize: model.ByteCount(record.allocationSize),
-				Attributes:     record.attributes,
-				LastWriteTime:  filetimeToTime(record.lastWriteTime),
-			})
 		}
 	}
 
+	done := make(chan struct{})
+	reported := make(chan struct{})
+	go func() {
+		defer close(reported)
+		if s.options.Progress == nil {
+			<-done
+			return
+		}
+		ticker := time.NewTicker(s.options.ProgressInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				mu.Lock()
+				snapshot := progress
+				mu.Unlock()
+				s.options.Progress(snapshot)
+			case <-done:
+				mu.Lock()
+				snapshot := progress
+				mu.Unlock()
+				snapshot.Current = ""
+				snapshot.Done = true
+				s.options.Progress(snapshot)
+				return
+			}
+		}
+	}()
+
+	var workers sync.WaitGroup
+	for range s.options.Workers {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			worker()
+		}()
+	}
+	workers.Wait()
+	close(done)
+	<-reported
+
+	sort.Slice(report.Nodes, func(i, j int) bool { return report.Nodes[i].Path < report.Nodes[j].Path })
+	sort.Slice(report.Errors, func(i, j int) bool { return report.Errors[i].Path < report.Errors[j].Path })
 	report.CompletedAt = time.Now().UTC()
+	if err := ctx.Err(); err != nil {
+		report.Complete = false
+		return report, err
+	}
 	return report, nil
+}
+
+func directoryNodes(directory string, records []fileIDDirectoryRecord) ([]model.Node, []string) {
+	nodes := make([]model.Node, 0, len(records))
+	var children []string
+	for _, record := range records {
+		if record.name == "." || record.name == ".." {
+			continue
+		}
+		path := filepath.Join(directory, record.name)
+		kind := "file"
+		if record.attributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+			kind = "reparse"
+		} else if record.attributes&windows.FILE_ATTRIBUTE_DIRECTORY != 0 {
+			kind = "directory"
+			children = append(children, path)
+		}
+
+		fileID := ""
+		if record.fileID != 0 {
+			fileID = fmt.Sprintf("%016x", record.fileID)
+		}
+		nodes = append(nodes, model.Node{
+			Path:           path,
+			ParentPath:     directory,
+			Kind:           kind,
+			FileID:         fileID,
+			LogicalSize:    model.ByteCount(record.logicalSize),
+			AllocationSize: model.ByteCount(record.allocationSize),
+			Attributes:     record.attributes,
+			LastWriteTime:  filetimeToTime(record.lastWriteTime),
+		})
+	}
+	return nodes, children
 }
 
 func enumerateWindowsDirectory(ctx context.Context, path string) ([]fileIDDirectoryRecord, uint32, error) {

@@ -28,6 +28,7 @@ var (
 	ErrUnsupportedPlatform = errors.New("quarantine is only available on Windows")
 	ErrNothingToApply      = errors.New("plan has no executable items")
 	ErrUnconfirmed         = errors.New("confirmation does not match the plan digest")
+	ErrNotExecutable       = errors.New("selected path is not an executable item of the plan, or is selected twice")
 
 	errInUse   = errors.New("file is open in another process")
 	errMissing = errors.New("file does not exist")
@@ -57,10 +58,12 @@ func DefaultQuarantineRoot(path string) string {
 	return filepath.VolumeName(path) + `\.pare-quarantine`
 }
 
-// Apply quarantines every executable item of a verified plan. confirm must equal the plan
-// digest, which ties the action to the plan the user reviewed. The manifest is written
-// before each move, so a failure to persist it stops the run without moving anything more.
-func Apply(ctx context.Context, p model.Plan, confirm, root string, now time.Time) (model.Execution, string, error) {
+// Apply quarantines executable items of a verified plan: the paths in selected, or every
+// executable item when selected is nil. confirm must equal the plan digest, which ties
+// the action to the plan the user reviewed. A selected path that is not an executable
+// item rejects the whole run. The manifest is written before each move, so a failure to
+// persist it stops the run without moving anything more.
+func Apply(ctx context.Context, p model.Plan, selected []string, confirm, root string, now time.Time) (model.Execution, string, error) {
 	if openLocked == nil {
 		return model.Execution{}, "", ErrUnsupportedPlatform
 	}
@@ -70,11 +73,9 @@ func Apply(ctx context.Context, p model.Plan, confirm, root string, now time.Tim
 	if confirm != p.Digest {
 		return model.Execution{}, "", ErrUnconfirmed
 	}
-	var items []model.PlanItem
-	for _, item := range p.Items {
-		if item.Executable {
-			items = append(items, item)
-		}
+	items, err := selectItems(p, selected)
+	if err != nil {
+		return model.Execution{}, "", err
 	}
 	if len(items) == 0 {
 		return model.Execution{}, "", ErrNothingToApply
@@ -137,6 +138,33 @@ func Apply(ctx context.Context, p model.Plan, confirm, root string, now time.Tim
 		}
 	}
 	return execution, manifest, nil
+}
+
+func selectItems(p model.Plan, selected []string) ([]model.PlanItem, error) {
+	var items []model.PlanItem
+	if selected == nil {
+		for _, item := range p.Items {
+			if item.Executable {
+				items = append(items, item)
+			}
+		}
+		return items, nil
+	}
+	executable := map[string]model.PlanItem{}
+	for _, item := range p.Items {
+		if item.Executable {
+			executable[item.Path] = item
+		}
+	}
+	for _, path := range selected {
+		item, ok := executable[path]
+		if !ok {
+			return nil, fmt.Errorf("%w: %s", ErrNotExecutable, path)
+		}
+		delete(executable, path)
+		items = append(items, item)
+	}
+	return items, nil
 }
 
 func quarantine(item model.ExecutionItem) (model.ExecutionState, string) {

@@ -167,7 +167,7 @@ const scanUsage = "Usage: pare scan --root <path> --json <path|->\n"
 
 const planUsage = "Usage: pare plan --scan <path> --json <path|-> [--ttl <duration>]\n"
 
-const applyUsage = "Usage: pare apply --plan <path> [--confirm <digest>] [--quarantine <dir>]\n"
+const applyUsage = "Usage: pare apply --plan <path> [--confirm <digest>] [--item <path>]... [--quarantine <dir>]\n"
 
 const undoUsage = "Usage: pare undo --manifest <path>\n"
 
@@ -178,6 +178,11 @@ func runApply(ctx context.Context, args []string, stdout, stderr io.Writer, now 
 	planPath := flags.String("plan", "", "plan path")
 	confirm := flags.String("confirm", "", "plan digest, copied from the reviewed plan")
 	root := flags.String("quarantine", "", "quarantine directory on the files' volume")
+	var selected []string
+	flags.Func("item", "path of one executable item to quarantine; repeat to select several (default: all)", func(path string) error {
+		selected = append(selected, path)
+		return nil
+	})
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
@@ -213,13 +218,13 @@ func runApply(ctx context.Context, args []string, stdout, stderr io.Writer, now 
 		}
 	}
 
-	execution, manifest, err := executor.Apply(ctx, reviewed, *confirm, *root, now)
+	execution, manifest, err := executor.Apply(ctx, reviewed, selected, *confirm, *root, now)
 	if manifest != "" {
 		fmt.Fprintf(stdout, "Manifest: %s\n", manifest)
 	}
 	fmt.Fprintf(stdout, "Quarantined %d, skipped %d, failed %d\n",
 		execution.Count(model.StateQuarantined), execution.Count(model.StateSkipped), execution.Count(model.StateFailed))
-	if errors.Is(err, executor.ErrUnconfirmed) {
+	if errors.Is(err, executor.ErrUnconfirmed) || errors.Is(err, executor.ErrNotExecutable) {
 		fmt.Fprintln(stderr, err)
 		return 2
 	}
