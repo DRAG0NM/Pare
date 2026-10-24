@@ -24,6 +24,8 @@ type Environment struct {
 	// Consent asks the user before content of a sensitive path is read. Nil denies.
 	Consent func(ctx context.Context, path, reason string) bool
 	Now     func() time.Time
+	// SkipSystemChecks turns off the baseline commands (for tests).
+	SkipSystemChecks bool
 
 	sorted []model.Node
 }
@@ -100,7 +102,7 @@ func (e *Environment) Tools() []Tool {
 			Name:        "scan_overview",
 			Description: "扫描总览：总占用、顶层目录、以及本地预先算出的异常线索。调查开始时先调用一次。",
 			Parameters:  `{"type":"object","properties":{}}`,
-			Run:         func(context.Context, json.RawMessage) (string, error) { return e.overview(), nil },
+			Run:         func(ctx context.Context, _ json.RawMessage) (string, error) { return e.overview(ctx), nil },
 		},
 		{
 			Name:        "list_dir",
@@ -165,7 +167,7 @@ func (e *Environment) Tools() []Tool {
 	}
 }
 
-func (e *Environment) overview() string {
+func (e *Environment) overview(ctx context.Context) string {
 	rows := []string{fmt.Sprintf("扫描根目录：%s；扫描是否完整：%v；读不到的位置：%d 处", e.Root, e.Report.Complete, len(e.Report.Errors))}
 	if e.Tree != nil {
 		root := e.Tree.Root
@@ -180,6 +182,10 @@ func (e *Environment) overview() string {
 			}
 			rows = append(rows, fmt.Sprintf("  %s  %s（%d 个文件）", size(child.AllocationSize), child.Path, child.Files))
 		}
+	}
+	if checks := e.baseline(ctx); len(checks) != 0 {
+		rows = append(rows, "", "系统检查（Pare 已自动运行）：")
+		rows = append(rows, checks...)
 	}
 	rows = append(rows, "", "异常线索（本地规则算出，需要你核实）：")
 	rows = append(rows, e.hints()...)

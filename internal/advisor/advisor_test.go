@@ -135,6 +135,20 @@ func TestAgentNudgesSamplingAndWrapsUpWhenStepsRunOut(t *testing.T) {
 	}
 }
 
+func TestCompactShortensOnlyOldToolResults(t *testing.T) {
+	long := strings.Repeat("x", 2000)
+	messages := []Message{{Role: "system", Content: long}, {Role: "tool", Content: long}, {Role: "assistant", Content: long}, {Role: "tool", Content: long}}
+
+	mark := compact(messages, 0, 3)
+
+	if mark != 3 || !strings.Contains(messages[1].Content, "已压缩") || len([]rune(messages[1].Content)) > 700 {
+		t.Errorf("old tool result = %d runes, mark %d", len([]rune(messages[1].Content)), mark)
+	}
+	if messages[0].Content != long || messages[2].Content != long || messages[3].Content != long {
+		t.Error("compact touched system, assistant or recent tool messages")
+	}
+}
+
 func TestClientSendsToolsAndParsesToolCalls(t *testing.T) {
 	var request map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

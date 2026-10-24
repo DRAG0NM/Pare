@@ -97,7 +97,7 @@ func (a Agent) Run(ctx context.Context, system, user string) ([]Finding, error) 
 	}
 	limit := a.ResultLimit
 	if limit <= 0 {
-		limit = 12000
+		limit = 8000
 	}
 
 	tools := map[string]Tool{}
@@ -117,9 +117,15 @@ func (a Agent) Run(ctx context.Context, system, user string) ([]Finding, error) 
 	tokens := 0
 	nudged, wrapping := false, false
 	samples := map[string]int{}
+	stepStart := map[int]int{}
+	compacted := 0
 	for step := 1; step <= maxSteps+wrapUpSteps; step++ {
 		if err := ctx.Err(); err != nil {
 			return findings, err
+		}
+		stepStart[step] = len(messages)
+		if step > compactEvery && step%compactEvery == 1 {
+			compacted = compact(messages, compacted, stepStart[step-compactEvery])
 		}
 		if step == maxSteps+1 {
 			// Out of investigation steps: let the model report what it already knows
@@ -184,6 +190,24 @@ func (a Agent) Run(ctx context.Context, system, user string) ([]Finding, error) 
 
 // wrapUpSteps are extra rounds after MaxSteps in which only report_finding is offered.
 const wrapUpSteps = 6
+
+// Every compactEvery steps, tool results older than that many steps are shortened. Doing
+// it in batches rather than every step keeps the request prefix stable in between, so
+// providers with prompt caching (DeepSeek) can still reuse it.
+const (
+	compactEvery    = 10
+	compactedLength = 600
+)
+
+// compact shortens tool results in messages[from:until] and returns the new watermark.
+func compact(messages []Message, from, until int) int {
+	for i := from; i < until; i++ {
+		if messages[i].Role == "tool" && len([]rune(messages[i].Content)) > compactedLength {
+			messages[i].Content = clip(messages[i].Content, compactedLength) + "（较早的工具结果已压缩；需要细节请重新查询）"
+		}
+	}
+	return max(from, until)
+}
 
 const nudgePrompt = `（系统提醒）你已经用了 %d/%d 步，还没有报告任何发现。请先用 report_finding 报告已经有证据的问题，再决定是否继续调查；剩余步数请优先用在占用最大的位置。`
 

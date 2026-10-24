@@ -54,7 +54,7 @@ func testEnvironment() *Environment {
 		}
 	}
 	report := model.ScanReport{Complete: true, Nodes: nodes}
-	return &Environment{Root: `C:\`, Report: report, Tree: tree.Build(`C:\`, report), Now: func() time.Time { return testNow }}
+	return &Environment{Root: `C:\`, Report: report, Tree: tree.Build(`C:\`, report), Now: func() time.Time { return testNow }, SkipSystemChecks: true}
 }
 
 func call(t *testing.T, env *Environment, name string, args any) (string, error) {
@@ -142,6 +142,32 @@ func TestDiagnosticsRejectUnsafeArguments(t *testing.T) {
 	}
 	if argv, err := diagnostics["wsl_du"].build("Ubuntu-24.04", "/home/me"); err != nil || strings.Join(argv, " ") != "wsl.exe -d Ubuntu-24.04 -u root -e du -xh --max-depth=1 -- /home/me" {
 		t.Errorf("wsl_du argv = %v, %v", argv, err)
+	}
+}
+
+func TestDuplicateDriversGroupsByOriginalName(t *testing.T) {
+	output := `Microsoft PnP 工具
+
+发布名称:     oem64.inf
+原始名称:      logi_lamparray_usb.inf
+驱动程序版本:     02/27/2026 1.2.0.0
+
+发布名称:     oem27.inf
+原始名称:      logi_lamparray_usb.inf
+驱动程序版本:     05/15/2025 1.0.0.0
+
+Published Name:     oem40.inf
+Original Name:      nv_dispi.inf
+Driver Version:     09/01/2026 32.0.15.6094
+
+Published Name:     oem33.inf
+Original Name:      LOGI_LAMPARRAY_USB.INF
+Driver Version:     06/17/2025 1.1.0.0
+`
+	got := duplicateDrivers(output)
+	want := "logi_lamparray_usb.inf 共 3 个版本（oem27.inf 05/15/2025、oem33.inf 06/17/2025、oem64.inf 02/27/2026）"
+	if len(got) != 1 || got[0] != want {
+		t.Fatalf("duplicateDrivers = %q, want [%q]", got, want)
 	}
 }
 
