@@ -1,5 +1,5 @@
 // A deterministic fake disk for running the UI in a browser. Never used in the desktop app.
-import type { AIEvent, AISettingsView, Backend, Finding, CandidateGroup, CandidateItem, CandidateView, Drive, Evidence, NodeTree, NodeView, Progress, ScanSummary } from './api'
+import type { ActionResult, BatchSummary, Execution, ExecutionPreview, PreparedAction, AIEvent, AISettingsView, Backend, Finding, CandidateGroup, CandidateItem, CandidateView, Drive, Evidence, NodeTree, NodeView, Progress, ScanSummary } from './api'
 
 type FakeNode = { name: string; kind: string; size: number; children: FakeNode[]; incomplete?: boolean }
 
@@ -258,7 +258,125 @@ function aiFinding(i: number, step: number) {
 }
 const j = (v: unknown) => JSON.stringify(v)
 
+let lastPreview: PreparedAction[] = []
+const NEW_MANIFEST = 'C:\\.pare-quarantine\\20261024-150000-abc\\manifest.json'
+const OLD_MANIFEST = 'C:\\.pare-quarantine\\20261019-092000-xyz\\manifest.json'
+const mockBatches: BatchSummary[] = [
+  { manifest: OLD_MANIFEST, createdAt: new Date(Date.now() - 5 * DAY).toISOString(), items: 3, quarantined: 3, restored: 0, purged: 0, other: 0, quarantinedBytes: 1.4 * GB },
+]
+let execRunning = false
+
+function mockExecution(manifest: string, state: string): Execution {
+  const b = mockBatches.find((x) => x.manifest === manifest)
+  const n = b?.quarantined || 1
+  return {
+    schema: 'pare.execution/1', plan_digest: 'sha256:mock', created_at: b?.createdAt ?? '', updated_at: new Date().toISOString(), quarantine_dir: manifest.replace(/\\manifest\.json$/, ''),
+    items: Array.from({ length: n }, (_, i) => ({ original_path: `D:\\Users\\me\\AppData\\Local\\Temp\\item-${i + 1}.tmp`, quarantine_path: '', state, detail: '', allocation_size: '0' })),
+  }
+}
+
+function prepareAction(f: Finding, index: number): PreparedAction {
+  const a = f.actions[index]
+  const base: PreparedAction = { key: `${f.id}:${index}`, findingTitle: f.title, kind: a.kind, label: a.label, explain: a.explain, bytes: a.bytes, items: [], steps: [], warnings: [], needsAdmin: false, runnable: true, error: '' }
+  if (a.kind === 'quarantine') {
+    const paths = a.paths ?? []
+    base.items = paths.map((path) => {
+      const prot = path.startsWith('C:\\Windows\\System32')
+      return { path, kind: 'directory' as const, bytes: a.bytes / Math.max(1, paths.length), executable: !prot, reason: prot ? '受保护的位置：Windows 系统目录' : '' }
+    })
+    base.needsAdmin = paths.some((p) => p.startsWith('C:\\Windows'))
+    base.runnable = base.items.some((i) => i.executable)
+    if (!base.runnable) base.error = '没有可以移走的项目'
+  } else if (a.kind === 'template') {
+    if (a.template === 'wsl_move') {
+      base.steps = ['wsl.exe --terminate Ubuntu-24.04', 'wsl.exe --manage Ubuntu-24.04 --move D:\\WSL\\Ubuntu-24.04']
+      base.warnings = ['执行期间 Ubuntu-24.04 会被关闭，正在运行的 WSL 程序会中断', '迁移完成后无法自动撤回']
+    } else {
+      base.steps = ['wsl.exe --terminate Ubuntu-24.04', 'wsl.exe --manage Ubuntu-24.04 --set-sparse true']
+      base.warnings = ['执行期间 Ubuntu-24.04 会被关闭']
+    }
+  } else if (a.kind === 'command') {
+    base.steps = [a.command ?? '']
+    base.warnings = ['这是 AI 写的命令，不在 Pare 的受支持动作里，Pare 无法检查它会做什么', '请逐字读懂后再执行']
+  } else {
+    base.runnable = false
+  }
+  return base
+}
+
 export const mockBackend: Backend = {
+  async PrepareExecution(chosen, rulePaths) {
+    await new Promise((resolve) => setTimeout(resolve, 700))
+    const actions: PreparedAction[] = []
+    for (const c of chosen) {
+      const f = mockFindings.find((x) => x.id === c.findingId)
+      if (f && f.actions[c.actionIndex]) actions.push(prepareAction(f, c.actionIndex))
+    }
+    if (rulePaths.length) {
+      const per = 38 * MB
+      actions.push({
+        key: 'rules', findingTitle: '常规缓存（规则）', kind: 'quarantine', label: `移走 ${rulePaths.length} 个缓存文件`, explain: '按规则挑选的临时文件和包缓存，移入隔离区。',
+        bytes: per * rulePaths.length, items: rulePaths.slice(0, 200).map((path) => ({ path, kind: 'file' as const, bytes: per, executable: true, reason: '' })), steps: [], warnings: [], needsAdmin: false, runnable: true, error: '',
+      })
+    }
+    lastPreview = actions
+    const preview: ExecutionPreview = { actions }
+    return preview
+  },
+  async Execute(accepted) {
+    if (!lastPreview.length) throw new Error('没有待执行的方案，请重新确认')
+    if (execRunning) throw new Error('已有操作在执行')
+    execRunning = true
+    const acts = lastPreview.filter((a) => accepted.includes(a.key))
+    const results: ActionResult[] = []
+    acts.forEach((a, i) => {
+      const at = 300 + i * 900
+      setTimeout(() => mockEvents.emit('exec:progress', { key: a.key, label: a.label, status: 'running', detail: '', output: '' } as ActionResult), at)
+      setTimeout(() => {
+        const partial = a.kind === 'quarantine' && a.items.length > 3
+        const r: ActionResult = {
+          key: a.key, label: a.label, status: partial ? 'partial' : 'done',
+          detail: a.kind === 'quarantine' ? (partial ? `已移走 ${a.items.length - 1} 项，1 项被占用` : `已移走 ${a.items.length} 项`) : '已完成',
+          output: a.steps.length ? a.steps.map((s) => `> ${s}\n操作成功完成。`).join('\n') : '',
+        }
+        results.push(r)
+        mockEvents.emit('exec:progress', r)
+      }, at + 700)
+    })
+    setTimeout(() => {
+      execRunning = false
+      const quarantined = acts.filter((a) => a.kind === 'quarantine')
+      const manifests = quarantined.length ? [NEW_MANIFEST] : []
+      if (manifests.length) {
+        const n = quarantined.reduce((s, a) => s + a.items.length, 0)
+        mockBatches.unshift({ manifest: NEW_MANIFEST, createdAt: new Date().toISOString(), items: n, quarantined: n, restored: 0, purged: 0, other: 0, quarantinedBytes: quarantined.reduce((s, a) => s + a.bytes, 0) })
+      }
+      mockEvents.emit('exec:done', { results, manifests, freedBytes: 2.1 * GB, error: '' })
+    }, 300 + acts.length * 900 + 800)
+  },
+  async ListQuarantine() {
+    return mockBatches.map((b) => ({ ...b }))
+  },
+  async UndoBatch(manifest) {
+    const b = mockBatches.find((x) => x.manifest === manifest)
+    if (!b) throw new Error('找不到这批隔离记录')
+    const ex = mockExecution(manifest, 'restored')
+    const conflict = ex.items.length > 2
+    if (conflict) ex.items[0].state = 'conflict'
+    b.restored += b.quarantined - (conflict ? 1 : 0)
+    b.quarantined = conflict ? 1 : 0
+    return ex
+  },
+  async PurgeBatch(manifest) {
+    const b = mockBatches.find((x) => x.manifest === manifest)
+    if (!b) throw new Error('找不到这批隔离记录')
+    const freed = b.quarantinedBytes
+    const ex = mockExecution(manifest, 'purged')
+    b.purged += b.quarantined
+    b.quarantined = 0
+    b.quarantinedBytes = 0
+    return { execution: ex, freedBytes: freed }
+  },
   async Elevated() {
     return false
   },

@@ -19,7 +19,7 @@
   </div>
   <div class="body">
     {#if tab === 'ai'}
-      <Investigate {root} {onOpenSettings} />
+      <Investigate {root} {onOpenSettings} {selection} />
     {:else}
       <RuleCandidates {selection} {onBack} />
     {/if}

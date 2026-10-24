@@ -201,16 +201,17 @@ func itemView(item model.PlanItem) QuarantineItemView {
 // and the report as one "exec:done" event.
 func (a *App) Execute(accepted []string) error {
 	a.mu.Lock()
-	run, root := a.prepared, a.root
-	a.prepared = nil
 	if a.executing {
 		a.mu.Unlock()
 		return errors.New("已有操作在执行")
 	}
+	run, root := a.prepared, a.root
 	if run == nil {
 		a.mu.Unlock()
 		return errors.New("没有待执行的方案，请重新确认")
 	}
+	// A preview runs at most once; a new run needs a fresh confirmation.
+	a.prepared = nil
 	a.executing = true
 	a.mu.Unlock()
 

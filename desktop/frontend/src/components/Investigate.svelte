@@ -3,9 +3,10 @@
   import { SvelteSet } from 'svelte/reactivity'
   import type { Action, Finding } from '../lib/api'
   import { bytes, middle } from '../lib/format'
+  import { openConfirm } from '../lib/execution.svelte'
   import { inv, startInvestigation, stopInvestigation } from '../lib/investigation.svelte'
 
-  let { root, onOpenSettings }: { root: string; onOpenSettings: () => void } = $props()
+  let { root, onOpenSettings, selection }: { root: string; onOpenSettings: () => void; selection: SvelteSet<string> } = $props()
 
   const riskText = { safe: '纯垃圾', rebuildable: '可重建缓存', careful: '需谨慎', system: '系统组件' }
   const riskTone = { safe: 'safe', rebuildable: 'check', careful: 'manual', system: 'blocked' }
@@ -45,6 +46,7 @@
     }
     return list
   })
+  const canNext = $derived(chosenActions.length > 0 || selection.size > 0)
   const chosenBytes = $derived(chosenActions.reduce((sum, a) => sum + a.bytes, 0))
 
   $effect(() => {
@@ -164,6 +166,10 @@
               </div>
             </label>
           {/each}
+          <label class="action skip" class:on={inv.chosen[f.id] === -1}>
+            <input type="radio" name="action-{f.id}" checked={inv.chosen[f.id] === -1} onchange={() => (inv.chosen[f.id] = -1)} />
+            <div class="abody"><strong>暂不处理</strong><span class="muted small">这一项先不动，也不会计入下面的统计。</span></div>
+          </label>
         </div>
       {/if}
     </section>
@@ -202,8 +208,8 @@
 
   <footer class="bar">
     <strong>已选 {chosenActions.length} 个方案，预计可回收 {bytes(chosenBytes)}</strong>
-    <span class="muted small">执行功能在下一版本（G3）开放，目前只能查看和选择方案</span>
-    <button class="primary next" disabled>下一步：确认执行</button>
+    {#if selection.size > 0}<span class="muted small">另有 {selection.size} 个常规缓存文件已在「常规缓存」页选中</span>{/if}
+    <button class="primary next" disabled={!canNext} onclick={() => openConfirm(selection)}>下一步：确认执行</button>
   </footer>
 </div>
 

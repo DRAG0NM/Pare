@@ -7,9 +7,12 @@
   import Scanning from './components/Scanning.svelte'
   import Overview from './components/Overview.svelte'
   import AISettings from './components/AISettings.svelte'
+  import UndoPage from './components/UndoPage.svelte'
+  import ConfirmExecution from './components/ConfirmExecution.svelte'
+  import { exec, initExecution } from './lib/execution.svelte'
   import { answerConsent, initInvestigation, inv, resetInvestigation } from './lib/investigation.svelte'
 
-  type View = 'home' | 'scanning' | 'overview' | 'decide'
+  type View = 'home' | 'scanning' | 'overview' | 'decide' | 'undo'
 
   let view = $state<View>('home')
   let target = $state('')
@@ -19,6 +22,29 @@
   const selection = new SvelteSet<string>()
   let decideTab = $state<'ai' | 'rules'>('ai')
   let showSettings = $state(false)
+  let settingsIntro = $state('')
+  let autoPrompted = false
+
+  const introText = '要让 AI 帮你找出这台电脑上的空间浪费，需要先填写一个 AI 服务的 API Key。推荐 DeepSeek：注册后在控制台创建 Key，粘贴到下面即可。'
+
+  $effect(() => {
+    if (view !== 'decide' || autoPrompted) return
+    autoPrompted = true
+    backend
+      .GetAISettings()
+      .then((s) => {
+        if (!s.hasKey) {
+          settingsIntro = introText
+          showSettings = true
+        }
+      })
+      .catch(() => {})
+  })
+
+  function openSettings() {
+    settingsIntro = ''
+    showSettings = true
+  }
 
   function investigate(path: string) {
     inv.scope = path
@@ -28,6 +54,7 @@
 
   onMount(() => {
     initInvestigation()
+    initExecution()
     const offProgress = onEvent<Progress>('scan:progress', (p) => (progress = p))
     const offDone = onEvent<ScanSummary>('scan:done', (s) => {
       if (s.cancelled) {
@@ -65,13 +92,14 @@
   const stages = [
     { id: 'see', label: '看清', hint: '扫描并查看空间去向' },
     { id: 'decide', label: '决定', hint: '按规则核对后挑选要清理的文件' },
-    { id: 'undo', label: '撤回', hint: '下一版本：管理隔离区与撤回' },
+    { id: 'undo', label: '撤回', hint: '管理隔离区，撤回或永久清空' },
   ]
-  const stageIndex = $derived(view === 'decide' ? 1 : 0)
+  const stageIndex = $derived(view === 'decide' ? 1 : view === 'undo' ? 2 : 0)
 
   function goStage(i: number) {
-    if (!summary) return
-    if (i === 0) view = 'overview'
+    if (i === 2) view = 'undo'
+    else if (!summary) return
+    else if (i === 0) view = 'overview'
     else if (i === 1) view = 'decide'
   }
 </script>
@@ -81,14 +109,14 @@
     <div class="brand">Pare</div>
     <nav>
       {#each stages as stage, i}
-        <button class="stage" class:active={i === stageIndex} disabled={i === 2 || !summary || view === 'scanning'} onclick={() => goStage(i)} title={stage.hint}>
+        <button class="stage" class:active={i === stageIndex} disabled={(i !== 2 && !summary) || view === 'scanning'} onclick={() => goStage(i)} title={stage.hint}>
           <span class="step">{i + 1}</span>{stage.label}
         </button>
       {/each}
     </nav>
     <div class="right">
       {#if isMock}<span class="mock">演示数据（浏览器预览）</span>{/if}
-      <button onclick={() => (showSettings = true)}>设置</button>
+      <button onclick={openSettings}>设置</button>
     </div>
   </header>
 
@@ -98,7 +126,9 @@
     {:else if view === 'scanning'}
       <Scanning {target} {progress} onCancel={() => backend.CancelScan()} />
     {:else if view === 'decide'}
-      <Decide {selection} bind:tab={decideTab} root={summary?.root ?? target} onOpenSettings={() => (showSettings = true)} onBack={() => (view = 'overview')} />
+      <Decide {selection} bind:tab={decideTab} root={summary?.root ?? target} onOpenSettings={openSettings} onBack={() => (view = 'overview')} />
+    {:else if view === 'undo'}
+      <UndoPage />
     {:else if summary}
       <Overview {summary} onInvestigate={investigate} onDecide={() => (view = 'decide')} onRescan={() => scan(summary!.root)} onHome={() => (view = 'home')} />
     {/if}
@@ -106,7 +136,11 @@
 </div>
 
 {#if showSettings}
-  <AISettings onClose={() => (showSettings = false)} />
+  <AISettings intro={settingsIntro} onClose={() => (showSettings = false)} />
+{/if}
+
+{#if exec.phase !== 'idle'}
+  <ConfirmExecution onGoUndo={() => (view = 'undo')} />
 {/if}
 
 {#if inv.pendingConsent}

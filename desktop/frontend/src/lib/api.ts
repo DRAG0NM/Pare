@@ -118,6 +118,29 @@ export type AIEvent = {
 export type AIConsent = { id: string; path: string; reason: string }
 export type AIFinished = { findings: Finding[]; error: string; cancelled: boolean }
 
+export type QuarantineItemView = { path: string; kind: 'file' | 'directory'; bytes: number; executable: boolean; reason: string }
+export type PreparedAction = {
+  key: string
+  findingTitle: string
+  kind: 'quarantine' | 'template' | 'command' | 'config' | 'manual'
+  label: string
+  explain: string
+  bytes: number
+  items: QuarantineItemView[]
+  steps: string[]
+  warnings: string[]
+  needsAdmin: boolean
+  runnable: boolean
+  error: string
+}
+export type ExecutionPreview = { actions: PreparedAction[] }
+export type ActionResult = { key: string; label: string; status: 'running' | 'done' | 'partial' | 'skipped' | 'failed'; detail: string; output: string }
+export type ExecutionReport = { results: ActionResult[]; manifests: string[]; freedBytes: number; error: string }
+export type BatchSummary = { manifest: string; createdAt: string; items: number; quarantined: number; restored: number; purged: number; other: number; quarantinedBytes: number }
+export type ExecutionItem = { original_path: string; quarantine_path: string; kind?: string; state: string; detail: string; allocation_size: string }
+export type Execution = { schema: string; plan_digest: string; created_at: string; updated_at: string; quarantine_dir: string; items: ExecutionItem[] }
+export type ChosenAction = { findingId: string; actionIndex: number }
+
 export interface Backend {
   Elevated(): Promise<boolean>
   Drives(): Promise<Drive[]>
@@ -135,6 +158,11 @@ export interface Backend {
   StopInvestigation(): Promise<void>
   AnswerConsent(id: string, allow: boolean): Promise<void>
   Findings(): Promise<Finding[]>
+  PrepareExecution(chosen: ChosenAction[], rulePaths: string[]): Promise<ExecutionPreview>
+  Execute(accepted: string[]): Promise<void>
+  ListQuarantine(): Promise<BatchSummary[]>
+  UndoBatch(manifest: string): Promise<Execution>
+  PurgeBatch(manifest: string): Promise<{ execution: Execution; freedBytes: number }>
 }
 
 const host = window as unknown as {

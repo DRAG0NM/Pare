@@ -35,6 +35,19 @@ var windowsAllowed = []string{
 	`windows\lastgood.tmp\`,
 }
 
+// ContentsOnly reports whether path is one of the Windows folders whose contents may be
+// quarantined while the folder itself must stay (for example C:\Windows\SystemTemp).
+func ContentsOnly(path string) bool {
+	clean := filepath.Clean(strings.TrimPrefix(path, `\\?\`))
+	rest := strings.ToLower(strings.Trim(strings.TrimPrefix(clean, filepath.VolumeName(clean)), `\`)) + `\`
+	for _, allowed := range windowsAllowed {
+		if rest == allowed {
+			return true
+		}
+	}
+	return false
+}
+
 // protectedExact are folders that must stay even though their contents may go.
 var protectedExact = map[string]bool{
 	"users": true, "program files": true, "program files (x86)": true, "programdata": true,

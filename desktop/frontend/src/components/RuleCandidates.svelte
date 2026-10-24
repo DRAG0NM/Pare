@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import type { SvelteSet } from 'svelte/reactivity'
   import { backend, type CandidateGroup, type CandidateItem, type CandidateView } from '../lib/api'
+  import { openConfirm } from '../lib/execution.svelte'
   import { bytes, middle } from '../lib/format'
   import { ageText, blockedReason, daysAgo, evidenceNames, evidenceText, riskLabel, ruleExplain, ruleName } from '../lib/labels'
 
@@ -216,8 +217,7 @@
       </button>
       {#if checkResult}<span class="small check">{checkResult}</span>{/if}
       <span class="next">
-        <button class="primary" disabled>下一步：确认执行</button>
-        <span class="muted small">执行功能在下一版本（G3）开放，目前只能挑选</span>
+        <button class="primary" disabled={selection.size === 0} onclick={() => openConfirm(selection)}>下一步：确认执行</button>
       </span>
     </footer>
   </div>

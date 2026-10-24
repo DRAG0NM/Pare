@@ -51,6 +51,23 @@ func BuildSelected(ctx context.Context, scan model.ScanReport, selections []Sele
 		}
 	}
 
+	// Selecting a folder like C:\Windows\SystemTemp means its contents: the folder itself
+	// is protected, so expand it into the entries directly inside.
+	var expanded []Selection
+	for _, selection := range selections {
+		if !ContentsOnly(selection.Path) {
+			expanded = append(expanded, selection)
+			continue
+		}
+		parent := strings.ToLower(filepath.Clean(selection.Path))
+		for _, node := range scan.Nodes {
+			if strings.ToLower(node.ParentPath) == parent {
+				expanded = append(expanded, Selection{Path: node.Path, Source: selection.Source + "（" + filepath.Base(selection.Path) + " 中的内容）"})
+			}
+		}
+	}
+	selections = expanded
+
 	items := []model.PlanItem{}
 	seen := map[string]bool{}
 	for _, selection := range selections {

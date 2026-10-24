@@ -92,7 +92,18 @@ Pare's focus is waste that is specific to one machine (updaters that leak packag
 
 The model only gets read-only tools: queries over the scan index (directories, large files, clusters of identically sized files, extension and age breakdowns), file headers and text, live size and lock state, installed programs, running processes, and an allowlist of diagnostic commands (`wsl --list`, `df`/`du` inside a WSL distro, `fsutil sparse queryflag`, `pnputil /enum-drivers`, `Dism /AnalyzeComponentStore`, `vssadmin list shadowstorage`, `docker system df`, `powercfg /a`). Commands are started directly from an argument array, never through a shell, and distro names and paths are validated. Locally computed hints (huge files, virtual disks, same-size clusters, zero-byte floods, side-by-side versions, multi-platform binaries) seed each run. Directory structure, file names and file content are sent to the chosen provider; reading the content of credential-like files (SSH keys, `.env`, browser login data, certificates, credential stores) asks the user each time.
 
-Each finding states the cause, the evidence, whether it will grow back, and one or more options: quarantine (reversible), a supported action template, a command outside the templates, a config change, or manual steps. Executing these options is the next stage; the app currently only shows and lets you choose them.
+Each finding states the cause, the evidence, whether it will grow back, and one or more options: quarantine (reversible), a supported action template, a command outside the templates, a config change, or manual steps.
+
+### Executing findings
+
+Nothing runs until the user confirms it. A confirmation dialog shows, for every chosen option, the exact items or steps, warnings and whether administrator rights are needed:
+
+- **Quarantine** builds a plan from the selected files and folders (`plan.BuildSelected`). Whole folders are moved with one rename, which Windows refuses while any file inside is open, so busy folders are skipped. A fixed list of protected locations is checked when the plan is built and again before each move: the volume root, `Windows` except its temp, update-download and dump folders, `System Volume Information`, the recycle bin, `Recovery`, profile and `AppData` roots, the page and hibernation files, `ProgramData\Microsoft` and `Program Files\WindowsApps`.
+- **Templates** (`internal/actions`) validate their parameters (distro names, a new unprotected WSL target folder, `oemNN.inf` driver packages, journal sizes) and run as argument arrays: moving a WSL distro or making its disk sparse, journal and apt cleanup inside WSL, npm/pip cache cleanup, `docker system prune`, DISM component cleanup, deleting one driver package, turning hibernation off.
+- **Commands** outside the templates are run through `cmd.exe` exactly as written, only after the user ticks them and confirms they read them.
+- **Config changes and manual steps** are shown as instructions.
+
+Quarantines run first. The result view reports each option's outcome and the measured change in free space, and offers to purge the new batches at once. The "撤回" (undo) stage lists every quarantine batch on local drives, restores a batch (never overwriting a file that took the original path) or purges it permanently.
 
 ```powershell
 pnpm --dir desktop/frontend install

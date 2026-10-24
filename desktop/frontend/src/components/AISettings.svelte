@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import { backend, type AISettingsView } from '../lib/api'
 
-  let { onClose }: { onClose: () => void } = $props()
+  let { onClose, intro = '' }: { onClose: () => void; intro?: string } = $props()
 
   let loaded = $state<AISettingsView | null>(null)
   let provider = $state('')
@@ -78,6 +78,7 @@
 <div class="backdrop" onclick={(e) => e.target === e.currentTarget && onClose()}>
   <div class="modal" role="dialog" aria-modal="true" aria-label="AI 设置">
     <h2>AI 设置</h2>
+    {#if intro}<p class="intro">{intro}</p>{/if}
     {#if !loaded}
       <p class="muted">{error || '正在读取…'}</p>
     {:else}
@@ -203,5 +204,11 @@
   }
   .note {
     margin: 0;
+  }
+  .intro {
+    margin: 0;
+    padding: 8px 10px;
+    background: var(--accent-soft);
+    border-radius: 6px;
   }
 </style>
