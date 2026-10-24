@@ -159,8 +159,8 @@ func TestInvestigationWithRealTools(t *testing.T) {
 	env := testEnvironment()
 	model := &scriptedModel{replies: []Message{
 		{Role: "assistant", ToolCalls: []ToolCall{toolCall("1", "scan_overview", `{}`)}},
-		{Role: "assistant", ToolCalls: []ToolCall{toolCall("2", "same_size_files", `{"path":"C:\Windows\SystemTemp"}`)}},
-		{Role: "assistant", ToolCalls: []ToolCall{toolCall("3", "report_finding", `{"title":"更新包残留","summary":"s","cause":"c","bytes":6270000000,"risk":"safe","confidence":"high","evidence":["20 个 299 MB 文件"],"actions":[{"kind":"quarantine","label":"移入隔离区","explain":"可撤回","paths":["C:\Windows\SystemTemp\pkg-00"]}]}`)}},
+		{Role: "assistant", ToolCalls: []ToolCall{toolCall("2", "same_size_files", `{"path":"C:\\Windows\\SystemTemp"}`)}},
+		{Role: "assistant", ToolCalls: []ToolCall{toolCall("3", "report_finding", `{"title":"更新包残留","summary":"s","cause":"c","bytes":6270000000,"risk":"safe","confidence":"high","evidence":["20 个 299 MB 文件"],"actions":[{"kind":"quarantine","label":"移入隔离区","explain":"可撤回","paths":["C:\\Windows\\SystemTemp\\pkg-00"]}]}`)}},
 		{Role: "assistant", Content: "共发现 1 个问题。"},
 	}}
 	findings, err := Agent{Client: model, Tools: env.Tools()}.Run(context.Background(), SystemPrompt(), UserPrompt(`C:\`, ""))
