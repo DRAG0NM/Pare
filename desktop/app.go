@@ -34,7 +34,10 @@ type App struct {
 
 	// findings collects AI findings since the latest scan.
 	findings []advisor.Finding
-	ai       investigation
+	// prepared is the last confirmed-for-review execution; Execute runs exactly it.
+	prepared  *preparedRun
+	executing bool
+	ai        investigation
 }
 
 func NewApp() *App {
@@ -140,7 +143,7 @@ func (a *App) StartScan(root string) error {
 		a.cancel = nil
 		if !summary.Cancelled {
 			a.tree, a.report, a.plan = built, report, nil
-			a.root, a.volumeUsed, a.findings = absolute, summary.VolumeUsed, nil
+			a.root, a.volumeUsed, a.findings, a.prepared = absolute, summary.VolumeUsed, nil, nil
 		}
 		a.mu.Unlock()
 		cancel()

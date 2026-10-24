@@ -95,3 +95,20 @@ func oemText(data []byte) string {
 	multiByteToWideChar.Call(cpOEM, 0, uintptr(unsafe.Pointer(&data[0])), uintptr(len(data)), uintptr(unsafe.Pointer(&wide[0])), n)
 	return string(utf16.Decode(wide))
 }
+
+// RunShell runs one command line through cmd.exe exactly as written. It is only used for
+// commands the user explicitly chose to run; the line is passed raw so quotes, pipes and
+// redirections behave as they would in a console.
+func RunShell(ctx context.Context, line string) (string, error) {
+	command := exec.CommandContext(ctx, "cmd.exe")
+	command.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: createNoWindow, CmdLine: `cmd.exe /d /s /c "` + line + `"`}
+	command.Env = append(os.Environ(), "WSL_UTF8=1")
+	var stdout, stderr bytes.Buffer
+	command.Stdout, command.Stderr = &stdout, &stderr
+	err := command.Run()
+	text := strings.TrimSpace(Decode(stdout.Bytes()) + "\n" + Decode(stderr.Bytes()))
+	if ctx.Err() != nil {
+		return text, fmt.Errorf("超时或被取消")
+	}
+	return text, err
+}
