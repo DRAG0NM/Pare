@@ -78,3 +78,10 @@ export function blockedReason(evidence: Evidence[], ruleId = ''): string {
 export function daysAgo(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
 }
+
+// Files unpacked from archives often keep timestamps from around 1980; a date reads
+// better than "17000 天前" there.
+export function ageText(iso: string): string {
+  const days = daysAgo(iso)
+  return days > 3650 ? iso.slice(0, 10) : `${days} 天前`
+}

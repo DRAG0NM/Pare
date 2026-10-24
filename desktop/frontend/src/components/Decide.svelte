@@ -3,7 +3,7 @@
   import type { SvelteSet } from 'svelte/reactivity'
   import { backend, type CandidateGroup, type CandidateItem, type CandidateView } from '../lib/api'
   import { bytes, middle } from '../lib/format'
-  import { blockedReason, daysAgo, evidenceNames, evidenceText, riskLabel, ruleExplain, ruleName } from '../lib/labels'
+  import { ageText, blockedReason, daysAgo, evidenceNames, evidenceText, riskLabel, ruleExplain, ruleName } from '../lib/labels'
 
   let { selection, onBack }: { selection: SvelteSet<string>; onBack: () => void } = $props()
 
@@ -19,6 +19,11 @@
   let expandedPath = $state('')
 
   let refreshing = $state(false)
+  let checkResult = $state('')
+
+  function executablePaths(v: CandidateView | null): Set<string> {
+    return new Set((v?.groups ?? []).flatMap((g) => g.items.filter((i) => i.executable).map((i) => i.path)))
+  }
 
   // Loads the plan (cached for this scan unless refresh) and drops selected paths that
   // are no longer executable in it, so the selection never outlives its evidence.
@@ -26,9 +31,25 @@
     error = ''
     refreshing = refresh
     try {
+      const before = executablePaths(view)
       const v = await backend.BuildCandidates(refresh)
-      const executable = new Set(v.groups.flatMap((g) => g.items.filter((i) => i.executable).map((i) => i.path)))
-      for (const path of [...selection]) if (!executable.has(path)) selection.delete(path)
+      const executable = executablePaths(v)
+      let unselected = 0
+      for (const path of [...selection]) {
+        if (!executable.has(path)) {
+          selection.delete(path)
+          unselected++
+        }
+      }
+      if (refresh) {
+        const lost = [...before].filter((p) => !executable.has(p)).length
+        const gained = [...executable].filter((p) => !before.has(p)).length
+        const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        checkResult =
+          lost === 0 && gained === 0
+            ? `${time} 已重新核对，没有变化`
+            : `${time} 已重新核对：${gained} 项变为可清理，${lost} 项不再能清理${unselected ? `（已取消其中 ${unselected} 项的勾选）` : ''}`
+      }
       view = v
       if (!v.groups.some((g) => g.ruleId === activeId) && v.groups.length > 0) selectGroup(v.groups[0])
     } catch (e) {
@@ -163,7 +184,7 @@
                   <span class="mono muted dir">{middle(item.directory, 60)}</span>
                 </div>
                 <span class="num">{bytes(item.allocationSize)}</span>
-                <span>{daysAgo(item.lastWriteTime)} 天前</span>
+                <span title={item.lastWriteTime}>{ageText(item.lastWriteTime)}</span>
                 <span>
                   {#if item.executable}
                     <span class="badge safe">可清理</span>
@@ -196,9 +217,13 @@
       <strong>已选 {selection.size} 个文件，共 {bytes(selectedBytes)}</strong>
       <span class="muted small">移到隔离区不会立刻腾出空间；确认和执行会在下一步开放。</span>
       <button disabled={refreshing} onclick={() => load(true)} title="重新检查文件是否被占用、是否有变化">
-        {refreshing ? '正在核对…' : '重新核对'}
+        {refreshing ? '正在检查…' : '重新检查文件状态'}
       </button>
-      <button class="primary" disabled title="下一版本（G3）开放">下一步：确认执行</button>
+      {#if checkResult}<span class="small check">{checkResult}</span>{/if}
+      <span class="next">
+        <button class="primary" disabled>下一步：确认执行</button>
+        <span class="muted small">执行功能在下一版本（G3）开放，目前只能挑选</span>
+      </span>
     </footer>
   </div>
 {/if}
@@ -420,7 +445,13 @@
     border-radius: var(--radius);
     padding: 10px 16px;
   }
-  .bar .primary {
+  .check {
+    color: var(--accent);
+  }
+  .next {
     margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
 </style>
