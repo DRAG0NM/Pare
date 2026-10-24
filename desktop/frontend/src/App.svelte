@@ -104,11 +104,11 @@
   ]
   const stageIndex = $derived(view === 'decide' ? 1 : view === 'undo' ? 2 : 0)
 
+  // 扫描 always works: without a scan result it goes back to the drive list.
   function goStage(i: number) {
     if (i === 2) view = 'undo'
-    else if (!summary) return
-    else if (i === 0) view = 'overview'
-    else if (i === 1) view = 'decide'
+    else if (i === 0) view = summary ? 'overview' : 'home'
+    else if (summary) view = 'decide'
   }
 </script>
 
@@ -124,7 +124,7 @@
     <nav>
       {#each stages as stage, i}
         {#if i > 0}<span class="sep" aria-hidden="true"></span>{/if}
-        <button class="stage" class:active={i === stageIndex} disabled={(i !== 2 && !summary) || view === 'scanning'} onclick={() => goStage(i)} title={stage.hint}>
+        <button class="stage" class:active={i === stageIndex} disabled={(i === 1 && !summary) || view === 'scanning'} onclick={() => goStage(i)} title={stage.hint}>
           <span class="step">{i + 1}</span>{stage.label}
         </button>
       {/each}

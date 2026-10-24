@@ -1,6 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { backend, type AISettingsView } from '../lib/api'
+  import { appearance, setTheme, type Theme } from '../lib/theme.svelte'
+
+  const themes: { id: Theme; label: string }[] = [
+    { id: 'system', label: '跟随系统' },
+    { id: 'light', label: '浅色' },
+    { id: 'dark', label: '深色' },
+  ]
 
   let { onClose, intro = '' }: { onClose: () => void; intro?: string } = $props()
 
@@ -76,8 +83,17 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 <div class="backdrop" onclick={(e) => e.target === e.currentTarget && onClose()}>
-  <div class="modal" role="dialog" aria-modal="true" aria-label="AI 设置">
-    <h2>AI 设置</h2>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="设置">
+    <h2>设置</h2>
+    <div class="appearance">
+      <span>外观</span>
+      <div class="seg" role="radiogroup" aria-label="外观">
+        {#each themes as t}
+          <button role="radio" aria-checked={appearance.theme === t.id} class:on={appearance.theme === t.id} onclick={() => setTheme(t.id)}>{t.label}</button>
+        {/each}
+      </div>
+    </div>
+    <h3>AI 服务</h3>
     {#if intro}<p class="intro">{intro}</p>{/if}
     {#if !loaded}
       <p class="muted">{error || '正在读取…'}</p>
@@ -151,6 +167,44 @@
   h2 {
     margin: 0 0 4px;
     font-size: 17px;
+  }
+  h3 {
+    margin: 6px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .appearance {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .seg {
+    display: inline-flex;
+    font-weight: 400;
+  }
+  .seg button {
+    padding: 3px 12px;
+    font-size: 12px;
+    border-radius: 0;
+  }
+  .seg button:first-child {
+    border-radius: 6px 0 0 6px;
+  }
+  .seg button:last-child {
+    border-radius: 0 6px 6px 0;
+  }
+  .seg button + button {
+    margin-left: -1px;
+  }
+  .seg button.on {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+    position: relative;
   }
   label {
     display: flex;
