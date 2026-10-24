@@ -31,7 +31,9 @@ type PlanSource struct {
 }
 
 type PlanItem struct {
-	Path           string     `json:"path"`
+	Path string `json:"path"`
+	// Kind is "directory" for whole folders selected by the AI or the user; empty means a file.
+	Kind           string     `json:"kind,omitempty"`
 	FileID         string     `json:"file_id"`
 	LogicalSize    ByteCount  `json:"logical_size"`
 	AllocationSize ByteCount  `json:"allocation_size"`

@@ -23,10 +23,14 @@ const (
 	StateRestored    ExecutionState = "restored"
 	// StateConflict means undo found the original path occupied and left the file in quarantine.
 	StateConflict ExecutionState = "conflict"
+	// StatePurged items were permanently deleted from quarantine at the user's request.
+	StatePurged ExecutionState = "purged"
 )
 
 type ExecutionItem struct {
-	OriginalPath   string         `json:"original_path"`
+	OriginalPath string `json:"original_path"`
+	// Kind is "directory" when a whole folder was moved; empty means a file.
+	Kind           string         `json:"kind,omitempty"`
 	QuarantinePath string         `json:"quarantine_path"`
 	FileID         string         `json:"file_id"`
 	LogicalSize    ByteCount      `json:"logical_size"`

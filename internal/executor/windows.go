@@ -40,7 +40,9 @@ func openWindowsLocked(path string) (lockedFile, error) {
 		0,
 		nil,
 		windows.OPEN_EXISTING,
-		windows.FILE_FLAG_OPEN_REPARSE_POINT,
+		// Backup semantics are required to open directories; reparse points are opened
+		// themselves, never followed.
+		windows.FILE_FLAG_OPEN_REPARSE_POINT|windows.FILE_FLAG_BACKUP_SEMANTICS,
 		0,
 	)
 	switch {
@@ -65,6 +67,7 @@ func (f windowsFile) Info() (fileInfo, error) {
 		LastWrite:  time.Unix(0, info.LastWriteTime.Nanoseconds()),
 		Attributes: info.FileAttributes,
 		Reparse:    info.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0,
+		Directory:  info.FileAttributes&windows.FILE_ATTRIBUTE_DIRECTORY != 0,
 	}, nil
 }
 
@@ -97,6 +100,10 @@ func (f windowsFile) Rename(destination string) error {
 	err = windows.SetFileInformationByHandle(f.handle, windows.FileRenameInfo, &buffer[0], uint32(len(buffer)))
 	if errors.Is(err, windows.ERROR_ALREADY_EXISTS) || errors.Is(err, windows.ERROR_FILE_EXISTS) {
 		return errExists
+	}
+	// Windows refuses to rename a directory while any file inside is open.
+	if errors.Is(err, windows.ERROR_ACCESS_DENIED) || errors.Is(err, windows.ERROR_SHARING_VIOLATION) {
+		return fmt.Errorf("%w: %v", errInUse, err)
 	}
 	return err
 }

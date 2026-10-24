@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -41,6 +42,7 @@ type fileInfo struct {
 	LastWrite  time.Time
 	Attributes uint32
 	Reparse    bool
+	Directory  bool
 }
 
 // lockedFile is a file opened with exclusive access and permission to rename it.
@@ -110,6 +112,7 @@ func Apply(ctx context.Context, p model.Plan, selected []string, confirm, root s
 	for index, item := range items {
 		execution.Items = append(execution.Items, model.ExecutionItem{
 			OriginalPath:   item.Path,
+			Kind:           item.Kind,
 			QuarantinePath: filepath.Join(batch, "files", fmt.Sprintf("%06d-%s", index, filepath.Base(item.Path))),
 			FileID:         item.FileID,
 			LogicalSize:    item.LogicalSize,
@@ -168,6 +171,9 @@ func selectItems(p model.Plan, selected []string) ([]model.PlanItem, error) {
 }
 
 func quarantine(item model.ExecutionItem) (model.ExecutionState, string) {
+	if protected, reason := plan.Protected(item.OriginalPath); protected {
+		return model.StateSkipped, "protected location: " + reason
+	}
 	if reparse, err := hasReparseAncestor(item.OriginalPath); err != nil {
 		return model.StateSkipped, "cannot check parent directories: " + err.Error()
 	} else if reparse {
@@ -186,21 +192,31 @@ func quarantine(item model.ExecutionItem) (model.ExecutionState, string) {
 		return model.StateSkipped, "changed since plan: " + changes
 	}
 	if err := file.Rename(item.QuarantinePath); err != nil {
+		if item.Kind == "directory" && errors.Is(err, errInUse) {
+			return model.StateSkipped, "a file inside the directory is in use"
+		}
 		return model.StateFailed, "move failed: " + err.Error()
 	}
 	return model.StateQuarantined, ""
 }
 
+// compare checks the live file against the plan. Directories are compared by identity
+// only: their size is the sum of contents and their timestamp changes whenever a file
+// inside does.
 func compare(item model.ExecutionItem, info fileInfo) string {
 	var changes []string
 	if info.FileID != item.FileID {
 		changes = append(changes, "file_id")
 	}
-	if info.Size != uint64(item.LogicalSize) {
-		changes = append(changes, "size")
-	}
-	if !info.LastWrite.Equal(item.LastWriteTime) {
-		changes = append(changes, "last_write_time")
+	if directory := item.Kind == "directory"; directory != info.Directory {
+		changes = append(changes, "kind")
+	} else if !directory {
+		if info.Size != uint64(item.LogicalSize) {
+			changes = append(changes, "size")
+		}
+		if !info.LastWrite.Equal(item.LastWriteTime) {
+			changes = append(changes, "last_write_time")
+		}
 	}
 	if info.Reparse {
 		changes = append(changes, "reparse")
@@ -295,4 +311,108 @@ func writeManifest(path string, execution *model.Execution) error {
 		return fmt.Errorf("write manifest: %w", err)
 	}
 	return nil
+}
+
+// Purge permanently deletes the quarantined items of one batch, freeing their space. Only
+// items Pare moved into the batch (quarantined or kept as conflicts) are deleted, and only
+// paths inside the batch's files folder; the manifest stays as a record.
+func Purge(ctx context.Context, manifest string, now time.Time) (model.Execution, error) {
+	data, err := os.ReadFile(manifest)
+	if err != nil {
+		return model.Execution{}, err
+	}
+	var execution model.Execution
+	if err := json.Unmarshal(data, &execution); err != nil {
+		return model.Execution{}, fmt.Errorf("parse manifest: %w", err)
+	}
+	execution.UpdatedAt = now.UTC()
+	files := strings.ToLower(filepath.Join(filepath.Dir(manifest), "files")) + `\`
+	for i := range execution.Items {
+		if err := ctx.Err(); err != nil {
+			return execution, err
+		}
+		item := &execution.Items[i]
+		if item.State != model.StateQuarantined && item.State != model.StateConflict {
+			continue
+		}
+		target := filepath.Clean(item.QuarantinePath)
+		if !strings.HasPrefix(strings.ToLower(target), files) {
+			item.Detail = "not inside this batch; left untouched"
+			continue
+		}
+		if err := removeAll(target); err != nil {
+			item.Detail = "delete failed: " + err.Error()
+		} else {
+			item.State, item.Detail = model.StatePurged, ""
+		}
+		if err := writeManifest(manifest, &execution); err != nil {
+			return execution, err
+		}
+	}
+	return execution, nil
+}
+
+// removeAll deletes path and, if read-only files block it, clears their read-only flag
+// and tries once more.
+func removeAll(path string) error {
+	if err := os.RemoveAll(path); err == nil {
+		return nil
+	}
+	_ = filepath.WalkDir(path, func(p string, entry os.DirEntry, err error) error {
+		if err == nil && entry.Type().IsRegular() {
+			_ = os.Chmod(p, 0o666)
+		}
+		return nil
+	})
+	return os.RemoveAll(path)
+}
+
+type BatchSummary struct {
+	Manifest         string    `json:"manifest"`
+	CreatedAt        time.Time `json:"createdAt"`
+	Items            int       `json:"items"`
+	Quarantined      int       `json:"quarantined"`
+	Restored         int       `json:"restored"`
+	Purged           int       `json:"purged"`
+	Other            int       `json:"other"`
+	QuarantinedBytes uint64    `json:"quarantinedBytes"`
+}
+
+// ListBatches reads the manifests under the given quarantine roots, newest first.
+func ListBatches(roots []string) []BatchSummary {
+	var batches []BatchSummary
+	for _, root := range roots {
+		entries, err := os.ReadDir(root)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			manifest := filepath.Join(root, entry.Name(), ManifestName)
+			data, err := os.ReadFile(manifest)
+			if !entry.IsDir() || err != nil {
+				continue
+			}
+			var execution model.Execution
+			if json.Unmarshal(data, &execution) != nil {
+				continue
+			}
+			summary := BatchSummary{Manifest: manifest, CreatedAt: execution.CreatedAt, Items: len(execution.Items)}
+			for _, item := range execution.Items {
+				switch item.State {
+				case model.StateQuarantined, model.StateConflict:
+					summary.Quarantined++
+					summary.QuarantinedBytes += uint64(item.AllocationSize)
+				case model.StateRestored:
+					summary.Restored++
+				case model.StatePurged:
+					summary.Purged++
+				default:
+					summary.Other++
+				}
+			}
+			batches = append(batches, summary)
+		}
+	}
+	sort.Slice(batches, func(i, j int) bool { return batches[i].CreatedAt.After(batches[j].CreatedAt) })
+	return batches
 }

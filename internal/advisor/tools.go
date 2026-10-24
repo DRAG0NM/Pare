@@ -13,6 +13,7 @@ import (
 
 	"github.com/DRAG0NM/Pare/internal/model"
 	"github.com/DRAG0NM/Pare/internal/tree"
+	"github.com/DRAG0NM/Pare/internal/winexec"
 )
 
 // Environment is what the tools can see: the scan, its tree and the live file system.
@@ -641,3 +642,9 @@ func (e *Environment) processes(_ context.Context, raw json.RawMessage) (string,
 	}
 	return lines(rows), nil
 }
+
+// runCommand and decodeText are shared with the action executor in internal/winexec.
+var (
+	runCommand = winexec.Run
+	decodeText = winexec.Decode
+)
