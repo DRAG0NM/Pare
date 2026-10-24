@@ -72,7 +72,7 @@
 
 <div class="page">
   <div class="top">
-    <h2>撤回</h2>
+    <h2>隔离区</h2>
     <span class="muted small">被移入隔离区的文件可以在这里恢复，或永久清空以释放空间。</span>
     <button class="refresh" disabled={loading} onclick={load}>{loading ? '刷新中…' : '刷新'}</button>
   </div>
@@ -147,6 +147,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    box-shadow: var(--shadow);
     padding: 10px 14px;
   }
   .info {

@@ -98,9 +98,9 @@
   }
 
   const stages = [
-    { id: 'see', label: '看清', hint: '扫描并查看空间去向' },
-    { id: 'decide', label: '决定', hint: '按规则核对后挑选要清理的文件' },
-    { id: 'undo', label: '撤回', hint: '管理隔离区，撤回或永久清空' },
+    { id: 'see', label: '扫描', hint: '扫描并查看空间去向' },
+    { id: 'decide', label: '清理', hint: '让 AI 深挖空间浪费，或按规则清理常规缓存' },
+    { id: 'undo', label: '隔离区', hint: '撤回清理过的文件，或永久清空' },
   ]
   const stageIndex = $derived(view === 'decide' ? 1 : view === 'undo' ? 2 : 0)
 
@@ -114,9 +114,16 @@
 
 <div class="shell">
   <header>
-    <div class="brand">Pare</div>
+    <div class="brand">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <rect x="2" y="2" width="20" height="20" rx="6" fill="var(--accent)" />
+        <path d="M7 16.5V7.5h5.2a3.2 3.2 0 0 1 0 6.4H7" fill="none" stroke="var(--on-accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      Pare
+    </div>
     <nav>
       {#each stages as stage, i}
+        {#if i > 0}<span class="sep" aria-hidden="true"></span>{/if}
         <button class="stage" class:active={i === stageIndex} disabled={(i !== 2 && !summary) || view === 'scanning'} onclick={() => goStage(i)} title={stage.hint}>
           <span class="step">{i + 1}</span>{stage.label}
         </button>
@@ -180,18 +187,30 @@
     display: flex;
     align-items: center;
     gap: 24px;
-    padding: 10px 20px;
+    padding: 8px 20px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    position: relative;
+    z-index: 1;
   }
   .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-weight: 700;
-    font-size: 18px;
-    letter-spacing: 0.5px;
+    font-size: 17px;
+    letter-spacing: 0.3px;
   }
   nav {
     display: flex;
-    gap: 6px;
+    align-items: center;
+    gap: 4px;
+  }
+  .sep {
+    width: 18px;
+    height: 1px;
+    background: var(--border-strong);
   }
   .stage {
     border: none;
@@ -199,7 +218,13 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 12px;
+    padding: 5px 12px 5px 6px;
+    border-radius: 999px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .stage:hover:not(:disabled) {
+    color: var(--text);
   }
   .stage.active {
     background: var(--accent-soft);
@@ -212,8 +237,17 @@
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    border: 1px solid currentColor;
+    background: var(--surface-2);
     font-size: 12px;
+    font-weight: 600;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  .stage.active .step {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .right button {
+    white-space: nowrap;
   }
   .right {
     margin-left: auto;
@@ -228,6 +262,7 @@
     display: grid;
     place-items: center;
     background: rgba(0, 0, 0, 0.45);
+    animation: fade-in 0.15s;
   }
   .modal {
     width: min(460px, calc(100vw - 32px));
@@ -235,6 +270,8 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 16px 20px;
+    box-shadow: var(--shadow-lg);
+    animation: pop-in 0.22s var(--ease);
   }
   .modal h3 {
     margin: 0 0 8px;
@@ -257,6 +294,7 @@
     margin-top: 12px;
   }
   .mock {
+    white-space: nowrap;
     font-size: 12px;
     color: var(--warn);
     background: var(--warn-soft);
@@ -266,5 +304,9 @@
   main {
     flex: 1;
     min-height: 0;
+  }
+  /* Each view remounts on navigation, so this replays on every page change. */
+  main > :global(*) {
+    animation: fade-up 0.25s var(--ease);
   }
 </style>

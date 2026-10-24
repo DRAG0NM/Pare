@@ -8,7 +8,7 @@
   const depth = 3
   const limit = 30
   const header = 17
-  const palette = ['#4f7fd9', '#3f9f8f', '#d08a3c', '#9b6bc8', '#c75b6f', '#6e9a3d', '#4aa3c7', '#a7814e']
+  const palette = ['#3a9a84', '#5b7fc7', '#d08a3c', '#9b6bc8', '#c75b6f', '#6e9a3d', '#4aa3c7', '#a7814e']
 
   let data = $state<NodeTree | null>(null)
   let failed = $state('')

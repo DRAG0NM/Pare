@@ -14,8 +14,8 @@
 
 <div class="decide-page">
   <div class="tabs" role="tablist">
-    <button role="tab" aria-selected={tab === 'ai'} class:active={tab === 'ai'} onclick={() => (tab = 'ai')}>AI 调查</button>
-    <button role="tab" aria-selected={tab === 'rules'} class:active={tab === 'rules'} onclick={() => (tab = 'rules')}>常规缓存（规则）</button>
+    <button role="tab" aria-selected={tab === 'ai'} class:active={tab === 'ai'} onclick={() => (tab = 'ai')}>AI 深挖</button>
+    <button role="tab" aria-selected={tab === 'rules'} class:active={tab === 'rules'} onclick={() => (tab = 'rules')}>常规清理</button>
   </div>
   <div class="body">
     {#if tab === 'ai'}
@@ -43,7 +43,12 @@
     border-bottom: 2px solid transparent;
     border-radius: 0;
     background: transparent;
-    padding: 6px 14px;
+    padding: 8px 14px;
+    color: var(--muted);
+  }
+  .tabs button:hover:not(.active) {
+    background: transparent;
+    color: var(--text);
   }
   .tabs button.active {
     color: var(--accent);

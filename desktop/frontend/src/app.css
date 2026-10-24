@@ -1,33 +1,48 @@
 :root {
-  --bg: #f6f7f9;
+  --bg: #f3f5f4;
   --surface: #ffffff;
-  --surface-2: #f0f2f5;
-  --border: #dde1e7;
-  --text: #1d2330;
-  --muted: #667085;
-  --accent: #2563eb;
-  --accent-soft: #e3ecfd;
+  --surface-2: #edf1ef;
+  --border: #dde3e0;
+  --border-strong: #c3ccc8;
+  --text: #1b2420;
+  --muted: #5f6e67;
+  --accent: #0e7d60;
+  --accent-hover: #0a6650;
+  --accent-soft: #dcf1e9;
+  --on-accent: #ffffff;
+  --safe: #2f7d3a;
+  --safe-soft: #e2f2e2;
   --warn: #b45309;
   --warn-soft: #fdf1e1;
-  --bar: #8aa8e8;
-  --radius: 8px;
-  --font: 'Segoe UI', 'Microsoft YaHei UI', 'PingFang SC', system-ui, sans-serif;
+  --bar: #7fc4ae;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgb(16 24 20 / 0.06), 0 1px 1px rgb(16 24 20 / 0.04);
+  --shadow-lg: 0 12px 32px rgb(16 24 20 / 0.18), 0 2px 6px rgb(16 24 20 / 0.08);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --font: 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI', 'PingFang SC', system-ui, sans-serif;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14171c;
-    --surface: #1c2027;
-    --surface-2: #242a33;
-    --border: #323946;
-    --text: #e6e9ef;
-    --muted: #98a2b3;
-    --accent: #6b9cff;
-    --accent-soft: #23314d;
+    --bg: #111614;
+    --surface: #18201d;
+    --surface-2: #202a26;
+    --border: #2b3632;
+    --border-strong: #3b4843;
+    --text: #e3e9e6;
+    --muted: #93a19a;
+    --accent: #3cc59b;
+    --accent-hover: #62d4b0;
+    --accent-soft: #15382d;
+    --on-accent: #052a1f;
+    --safe: #74c77f;
+    --safe-soft: #1b3320;
     --warn: #f2a65a;
     --warn-soft: #3a2a18;
-    --bar: #4d6fae;
+    --bar: #2f7a63;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.5);
     color-scheme: dark;
   }
 }
@@ -59,10 +74,26 @@ button {
   background: var(--surface);
   border-radius: 6px;
   padding: 6px 14px;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    transform 0.1s;
 }
 
 button:hover:not(:disabled) {
-  border-color: var(--accent);
+  border-color: var(--border-strong);
+  background-color: var(--surface-2);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 button:disabled {
@@ -73,7 +104,45 @@ button:disabled {
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+input[type='text'],
+input[type='password'] {
+  transition: border-color 0.15s;
+}
+
+input[type='text']:focus,
+input[type='password']:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+input[type='radio'],
+input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .muted {
@@ -83,4 +152,41 @@ button.primary {
 .mono {
   font-family: 'Cascadia Mono', Consolas, monospace;
   font-size: 12px;
+}
+
+/* Shared motion. Views and list items fade up when they mount; modals scale in. */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

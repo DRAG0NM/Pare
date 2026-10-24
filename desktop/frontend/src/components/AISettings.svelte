@@ -132,6 +132,7 @@
     display: grid;
     place-items: center;
     background: rgba(0, 0, 0, 0.4);
+    animation: fade-in 0.15s;
   }
   .modal {
     width: min(480px, calc(100vw - 32px));
@@ -141,6 +142,8 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 16px 20px;
+    box-shadow: var(--shadow-lg);
+    animation: pop-in 0.22s var(--ease);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -188,7 +191,7 @@
     margin: 0;
   }
   .ok {
-    color: #2e9e6a;
+    color: var(--safe);
   }
   .bad {
     color: var(--warn);

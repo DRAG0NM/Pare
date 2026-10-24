@@ -147,7 +147,7 @@
           {#if irreversible > 0}
             <label class="inline small warn"><input type="checkbox" bind:checked={irreversibleAck} />我知道其中 {irreversible} 项执行后无法撤回</label>
           {/if}
-          <span class="muted small">移入隔离区的项目可以在「撤回」页恢复；隔离不会立刻腾出空间，清空后才会释放。</span>
+          <span class="muted small">移入隔离区的项目可以在「隔离区」页恢复；隔离不会立刻腾出空间，清空后才会释放。</span>
         </div>
         <div class="buttons">
           <button onclick={close}>取消</button>
@@ -205,9 +205,9 @@
               <button class="primary" onclick={() => (purge = 'ask')}>立即清空这批（释放空间）</button>
             {/if}
           {/if}
-          <button onclick={goUndo}>去「撤回」页</button>
+          <button onclick={goUndo}>去隔离区</button>
           <button onclick={rescan}>重新扫描（更新结果）</button>
-          <button onclick={continueRun}>继续调查剩下的问题</button>
+          <button onclick={continueRun}>继续深挖剩下的问题</button>
         </div>
         <span class="muted small">清理后原来的扫描结果已经过时，重新扫描可以看到最新占用。</span>
       </div>
@@ -229,6 +229,7 @@
     display: grid;
     place-items: center;
     background: rgba(0, 0, 0, 0.45);
+    animation: fade-in 0.15s;
   }
   .modal {
     width: min(760px, calc(100vw - 32px));
@@ -240,6 +241,8 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 16px 20px;
+    box-shadow: var(--shadow-lg);
+    animation: pop-in 0.22s var(--ease);
   }
   h2 {
     margin: 0;
@@ -379,7 +382,7 @@
     white-space: nowrap;
   }
   .items .mark {
-    color: #2e9e6a;
+    color: var(--safe);
   }
   .items li.bad .mark {
     color: var(--warn);

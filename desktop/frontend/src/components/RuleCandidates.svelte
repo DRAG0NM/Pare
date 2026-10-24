@@ -108,7 +108,7 @@
 {#if error}
   <div class="center">
     <p>生成候选失败：{error}</p>
-    <button onclick={onBack}>返回看清</button>
+    <button onclick={onBack}>返回扫描结果</button>
   </div>
 {:else if !view}
   <div class="center">
@@ -256,6 +256,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    box-shadow: var(--shadow);
     min-height: 0;
   }
   .left {
@@ -313,8 +314,8 @@
     white-space: nowrap;
   }
   .badge.safe {
-    background: color-mix(in srgb, #2e9e6a 18%, var(--surface));
-    color: #2e9e6a;
+    background: var(--safe-soft);
+    color: var(--safe);
   }
   .badge.check {
     background: var(--accent-soft);
@@ -438,6 +439,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    box-shadow: var(--shadow);
     padding: 10px 16px;
   }
   .check {

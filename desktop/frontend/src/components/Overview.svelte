@@ -126,7 +126,7 @@
             {i === 0 ? crumb : crumb.slice(crumb.lastIndexOf('\\') + 1)}
           </button>
         {/each}
-        {#if onInvestigate}<button class="ask" onclick={() => onInvestigate(selected)}>让 AI 调查这里</button>{/if}
+        {#if onInvestigate}<button class="ask" onclick={() => onInvestigate(selected)}>让 AI 深挖这里</button>{/if}
       </div>
       <Treemap path={selected} onSelect={select} />
     </section>
@@ -148,6 +148,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    box-shadow: var(--shadow);
     padding: 12px 18px;
   }
   .figure {
@@ -179,6 +180,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    box-shadow: var(--shadow);
     padding: 4px 18px 8px;
     max-height: 30vh;
     overflow: auto;
@@ -208,6 +210,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    box-shadow: var(--shadow);
     min-height: 0;
     display: flex;
     flex-direction: column;

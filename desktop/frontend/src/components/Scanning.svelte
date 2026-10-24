@@ -15,7 +15,7 @@
 </script>
 
 <div class="scanning">
-  <div class="spinner" aria-hidden="true"></div>
+  <div class="spinner" aria-hidden="true"><span></span></div>
   <h2>正在扫描 {target}</h2>
   <div class="stats">
     <div><strong>{count(progress.entries)}</strong><span class="muted">个条目</span></div>
@@ -42,7 +42,7 @@
   }
   .stats {
     display: flex;
-    gap: 48px;
+    gap: 14px;
   }
   .stats div {
     display: flex;
@@ -58,16 +58,43 @@
     margin: 0;
   }
   .spinner {
-    width: 36px;
-    height: 36px;
+    position: relative;
+    width: 56px;
+    height: 56px;
+  }
+  .spinner::before,
+  .spinner span {
+    content: '';
+    position: absolute;
+    inset: 0;
     border-radius: 50%;
+  }
+  .spinner::before {
+    background: var(--accent-soft);
+    animation: halo 1.8s var(--ease) infinite;
+  }
+  .spinner span {
     border: 3px solid var(--surface-2);
     border-top-color: var(--accent);
-    animation: spin 0.9s linear infinite;
+    border-right-color: var(--accent);
+    animation: spin 1s linear infinite;
   }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
+  @keyframes halo {
+    0% {
+      transform: scale(0.85);
+      opacity: 0.9;
     }
+    100% {
+      transform: scale(1.6);
+      opacity: 0;
+    }
+  }
+  .stats div {
+    min-width: 110px;
+    padding: 10px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
   }
 </style>

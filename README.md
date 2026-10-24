@@ -83,8 +83,9 @@ Exit codes: 0 every item moved (or restored), 2 invalid arguments or missing con
 
 `desktop/` is a Wails v2 app (Go backend, Svelte frontend in WebView2) that builds into a single `pare-desktop.exe`. The UI is Chinese only.
 
-- **看清 (see):** pick a drive or folder, watch scan progress, then browse a directory tree linked to a treemap of the selected folder, with coverage gaps listed and incomplete folders marked.
-- **决定 (decide):** the main tab is an AI investigation; a secondary "常规缓存" tab shows the built-in rule candidates with evidence and selection.
+- **扫描 (scan):** pick a drive or folder, watch scan progress, then browse a directory tree linked to a treemap of the selected folder, with coverage gaps listed and incomplete folders marked.
+- **清理 (clean):** the main tab, "AI 深挖", is an AI investigation; a secondary "常规清理" tab shows the built-in rule candidates with evidence and selection.
+- **隔离区 (quarantine):** restore or permanently purge quarantined batches.
 
 ### AI investigation
 

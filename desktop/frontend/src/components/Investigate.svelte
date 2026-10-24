@@ -1,5 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte'
+  import { Tween } from 'svelte/motion'
+  import { cubicOut } from 'svelte/easing'
   import { SvelteSet } from 'svelte/reactivity'
   import type { Action, Finding, InvestigationDepth } from '../lib/api'
   import { bytes, middle } from '../lib/format'
@@ -58,6 +60,7 @@
   })
   const canNext = $derived(chosenActions.length > 0 || selection.size > 0)
   const chosenBytes = $derived(chosenActions.reduce((sum, a) => sum + a.bytes, 0))
+  const shownBytes = Tween.of(() => chosenBytes, { duration: 400, easing: cubicOut })
 
   $effect(() => {
     inv.events.length
@@ -80,19 +83,19 @@
 <div class="inv">
   <section class="panel top">
     <div class="inputs">
-      <input type="text" class="scope mono" bind:value={inv.scope} placeholder={root} disabled={inv.running} aria-label="调查范围" />
+      <input type="text" class="scope mono" bind:value={inv.scope} placeholder={root} disabled={inv.running} aria-label="深挖范围" />
       <input type="text" class="note" bind:value={inv.note} placeholder="补充说明（可选），例如：重点看 WSL、别动游戏目录" disabled={inv.running} aria-label="补充说明" />
       {#if inv.running}
         <button onclick={stopInvestigation}>停止</button>
       {:else}
         {#if canContinue}
-          <button title="在已有结果的基础上再查一轮，不重复已经报告过的问题" onclick={() => startInvestigation(true)}>继续调查</button>
+          <button title="在已有结果的基础上再查一轮，不重复已经报告过的问题" onclick={() => startInvestigation(true)}>继续深挖</button>
         {/if}
-        <button class="primary" onclick={() => startInvestigation(false)}>开始调查</button>
+        <button class="primary" onclick={() => startInvestigation(false)}>开始深挖</button>
       {/if}
     </div>
     <div class="depth small">
-      <div class="seg" role="radiogroup" aria-label="调查深度">
+      <div class="seg" role="radiogroup" aria-label="深挖程度">
         {#each depthOptions as d}
           <button role="radio" aria-checked={inv.depth === d.id} class:on={inv.depth === d.id} disabled={inv.running} onclick={() => (inv.depth = d.id)}>{d.label}</button>
         {/each}
@@ -101,13 +104,13 @@
     </div>
     <div class="status small">
       {#if inv.running}
-        <span class="spinner" aria-hidden="true"></span><span>{inv.continuing ? '继续调查 · ' : ''}第 {inv.step} 步 · 已用 {inv.tokens} tokens</span>
+        <span class="spinner" aria-hidden="true"></span><span>{inv.continuing ? '继续深挖 · ' : ''}第 {inv.step} 步 · 已用 {inv.tokens} tokens</span>
       {:else if inv.error}
         <span class="warn">{inv.error}</span>
       {:else if inv.finished}
-        <span>调查完成，发现 {inv.findings.length} 个问题</span>
+        <span>深挖完成，发现 {inv.findings.length} 个问题</span>
       {:else}
-        <span class="muted">范围留空则调查整个扫描位置。AI 会先看目录结构，再逐个深入。</span>
+        <span class="muted">范围留空则深挖整个扫描位置。AI 会先看目录结构，再逐个深入。</span>
       {/if}
     </div>
     {#if notConfigured}
@@ -124,7 +127,7 @@
         <p class="summary small">{inv.summary}</p>
       {/if}
       {#if inv.findings.length === 0}
-        <p class="muted empty">还没有发现。开始调查后，AI 每确认一个问题就会出现在这里。</p>
+        <p class="muted empty">还没有发现。开始深挖后，AI 每确认一个问题就会出现在这里。</p>
       {/if}
       {#each sorted as f (f.id)}
         <button class="card" class:active={f.id === selected?.id} class:muted-card={!!inv.handled[f.id]} onclick={() => pick(f)}>
@@ -199,7 +202,7 @@
 
   <section class="panel log">
     <button class="log-head" onclick={() => (logOpen = !logOpen)}>
-      <strong>调查过程</strong>
+      <strong>深挖过程</strong>
       {#if !logOpen && latest}<span class="muted small latest">{latest}</span>{/if}
       <span class="muted small">{inv.events.length} 条 {logOpen ? '▾ 收起' : '▸ 展开'}</span>
     </button>
@@ -229,8 +232,8 @@
   </section>
 
   <footer class="bar">
-    <strong>已选 {chosenActions.length} 个方案，预计可回收 {bytes(chosenBytes)}</strong>
-    {#if selection.size > 0}<span class="muted small">另有 {selection.size} 个常规缓存文件已在「常规缓存」页选中</span>{/if}
+    <strong>已选 {chosenActions.length} 个方案，预计可回收 <span class="total">{bytes(shownBytes.current)}</span></strong>
+    {#if selection.size > 0}<span class="muted small">另有 {selection.size} 个常规缓存文件已在「常规清理」页选中</span>{/if}
     <button class="primary next" disabled={!canNext} onclick={() => openConfirm(selection)}>下一步：确认执行</button>
   </footer>
 </div>
@@ -247,6 +250,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    box-shadow: var(--shadow);
     min-height: 0;
   }
   .small {
@@ -338,7 +342,9 @@
     width: 100%;
     text-align: left;
     margin-bottom: 6px;
-    padding: 8px 10px;
+    padding: 9px 11px;
+    border-radius: 8px;
+    animation: fade-up 0.3s var(--ease) both;
   }
   .card.muted-card {
     opacity: 0.55;
@@ -375,11 +381,14 @@
     background: var(--accent-soft);
     border-color: var(--accent);
     color: var(--accent);
+    font-weight: 600;
     position: relative;
   }
-  .card.active {
+  .card.active,
+  .card.active:hover {
     background: var(--accent-soft);
     border-color: var(--accent);
+    box-shadow: inset 3px 0 0 var(--accent);
   }
   .title {
     display: -webkit-box;
@@ -405,8 +414,8 @@
     white-space: nowrap;
   }
   .badge.safe {
-    background: color-mix(in srgb, #2e9e6a 18%, var(--surface));
-    color: #2e9e6a;
+    background: var(--safe-soft);
+    color: var(--safe);
   }
   .badge.check {
     background: var(--accent-soft);
@@ -462,6 +471,12 @@
     border: 1px solid var(--border);
     border-radius: 6px;
     cursor: pointer;
+  }
+  .action {
+    transition: border-color 0.15s, background-color 0.15s;
+  }
+  .action:hover {
+    border-color: var(--border-strong);
   }
   .action.on {
     border-color: var(--accent);
@@ -538,8 +553,12 @@
     padding: 4px 0;
     font-size: 13px;
   }
+  .ev {
+    animation: fade-in 0.2s;
+  }
   .ev.found {
     color: var(--accent);
+    font-weight: 600;
   }
   .bar {
     display: flex;
@@ -548,7 +567,12 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    box-shadow: var(--shadow);
     padding: 8px 16px;
+  }
+  .total {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
   }
   .next {
     margin-left: auto;

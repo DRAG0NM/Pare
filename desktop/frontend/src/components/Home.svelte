@@ -74,6 +74,22 @@
     text-align: left;
     padding: 16px;
     border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    animation: fade-up 0.3s var(--ease) both;
+  }
+  .drive:nth-child(2) {
+    animation-delay: 0.04s;
+  }
+  .drive:nth-child(3) {
+    animation-delay: 0.08s;
+  }
+  .drive:nth-child(n + 4) {
+    animation-delay: 0.12s;
+  }
+  .drive:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--surface);
+    transform: translateY(-1px);
   }
   .drive.folder {
     justify-content: center;
@@ -94,6 +110,14 @@
   .meter div {
     height: 100%;
     background: var(--accent);
+    border-radius: 4px;
+    animation: grow 0.6s var(--ease) both;
+    transform-origin: left;
+  }
+  @keyframes grow {
+    from {
+      transform: scaleX(0);
+    }
   }
   .small {
     font-size: 12px;
