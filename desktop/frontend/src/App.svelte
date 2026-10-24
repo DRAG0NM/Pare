@@ -6,6 +6,8 @@
   import Home from './components/Home.svelte'
   import Scanning from './components/Scanning.svelte'
   import Overview from './components/Overview.svelte'
+  import AISettings from './components/AISettings.svelte'
+  import { answerConsent, initInvestigation, inv, resetInvestigation } from './lib/investigation.svelte'
 
   type View = 'home' | 'scanning' | 'overview' | 'decide'
 
@@ -15,8 +17,17 @@
   let summary = $state<ScanSummary | null>(null)
   let error = $state('')
   const selection = new SvelteSet<string>()
+  let decideTab = $state<'ai' | 'rules'>('ai')
+  let showSettings = $state(false)
+
+  function investigate(path: string) {
+    inv.scope = path
+    decideTab = 'ai'
+    view = 'decide'
+  }
 
   onMount(() => {
+    initInvestigation()
     const offProgress = onEvent<Progress>('scan:progress', (p) => (progress = p))
     const offDone = onEvent<ScanSummary>('scan:done', (s) => {
       if (s.cancelled) {
@@ -40,6 +51,7 @@
   async function scan(root: string) {
     error = ''
     selection.clear()
+    resetInvestigation()
     target = root
     progress = { entries: 0, directories: 0, current: '', done: false }
     try {
@@ -74,7 +86,10 @@
         </button>
       {/each}
     </nav>
-    {#if isMock}<span class="mock">演示数据（浏览器预览）</span>{/if}
+    <div class="right">
+      {#if isMock}<span class="mock">演示数据（浏览器预览）</span>{/if}
+      <button onclick={() => (showSettings = true)}>设置</button>
+    </div>
   </header>
 
   <main>
@@ -83,12 +98,31 @@
     {:else if view === 'scanning'}
       <Scanning {target} {progress} onCancel={() => backend.CancelScan()} />
     {:else if view === 'decide'}
-      <Decide {selection} onBack={() => (view = 'overview')} />
+      <Decide {selection} bind:tab={decideTab} root={summary?.root ?? target} onOpenSettings={() => (showSettings = true)} onBack={() => (view = 'overview')} />
     {:else if summary}
-      <Overview {summary} onDecide={() => (view = 'decide')} onRescan={() => scan(summary!.root)} onHome={() => (view = 'home')} />
+      <Overview {summary} onInvestigate={investigate} onDecide={() => (view = 'decide')} onRescan={() => scan(summary!.root)} onHome={() => (view = 'home')} />
     {/if}
   </main>
 </div>
+
+{#if showSettings}
+  <AISettings onClose={() => (showSettings = false)} />
+{/if}
+
+{#if inv.pendingConsent}
+  <div class="backdrop">
+    <div class="modal" role="alertdialog" aria-modal="true" aria-label="AI 请求读取文件">
+      <h3>AI 想读取一个敏感文件的内容</h3>
+      <p class="mono path" title={inv.pendingConsent.path}>{inv.pendingConsent.path}</p>
+      <p>{inv.pendingConsent.reason}</p>
+      <p class="muted">内容会发送给 AI 服务商。拒绝后 AI 只能根据文件名和大小判断。</p>
+      <div class="buttons">
+        <button onclick={() => answerConsent(false)}>拒绝</button>
+        <button class="primary" onclick={() => answerConsent(true)}>允许这一次</button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .shell {
@@ -135,8 +169,48 @@
     border: 1px solid currentColor;
     font-size: 12px;
   }
-  .mock {
+  .right {
     margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.45);
+  }
+  .modal {
+    width: min(460px, calc(100vw - 32px));
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+  }
+  .modal h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+  }
+  .modal p {
+    margin: 6px 0;
+  }
+  .path {
+    word-break: break-all;
+    background: var(--surface-2);
+    padding: 6px 8px;
+    border-radius: 4px;
+    user-select: text;
+  }
+  .buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .mock {
     font-size: 12px;
     color: var(--warn);
     background: var(--warn-soft);

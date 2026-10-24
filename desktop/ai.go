@@ -147,8 +147,10 @@ func (a *App) StartInvestigation(scope, note string) error {
 		if result.Findings == nil {
 			result.Findings = []advisor.Finding{}
 		}
+		// Each run numbers its findings from f1, and the UI clears its list when a run
+		// starts, so the latest run replaces earlier results.
 		a.mu.Lock()
-		a.findings = append(a.findings, findings...)
+		a.findings = result.Findings
 		a.mu.Unlock()
 		a.ai.mu.Lock()
 		a.ai.cancel = nil
@@ -216,7 +218,7 @@ func (a *App) AnswerConsent(id string, allow bool) {
 	}
 }
 
-// Findings returns everything reported since the latest scan, for G3 to act on.
+// Findings returns the latest investigation's findings, for G3 to act on.
 func (a *App) Findings() []advisor.Finding {
 	a.mu.Lock()
 	defer a.mu.Unlock()

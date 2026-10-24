@@ -6,7 +6,7 @@
   import TreeRow from './TreeRow.svelte'
   import Treemap from './Treemap.svelte'
 
-  let { summary, onRescan, onHome, onDecide }: { summary: ScanSummary; onRescan: () => void; onHome: () => void; onDecide?: () => void } = $props()
+  let { summary, onRescan, onHome, onDecide, onInvestigate }: { summary: ScanSummary; onRescan: () => void; onHome: () => void; onDecide?: () => void; onInvestigate?: (path: string) => void } = $props()
 
   let selected = $state(summary.root)
   const expanded = new SvelteSet<string>([summary.root])
@@ -126,6 +126,7 @@
             {i === 0 ? crumb : crumb.slice(crumb.lastIndexOf('\\') + 1)}
           </button>
         {/each}
+        {#if onInvestigate}<button class="ask" onclick={() => onInvestigate(selected)}>让 AI 调查这里</button>{/if}
       </div>
       <Treemap path={selected} onSelect={select} />
     </section>
@@ -231,6 +232,12 @@
     border-bottom: 1px solid var(--border);
     overflow: hidden;
     white-space: nowrap;
+  }
+  .ask {
+    margin-left: auto;
+    flex: none;
+    padding: 2px 10px;
+    font-size: 12px;
   }
   .crumb {
     border: none;

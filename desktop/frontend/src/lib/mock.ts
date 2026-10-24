@@ -1,5 +1,5 @@
 // A deterministic fake disk for running the UI in a browser. Never used in the desktop app.
-import type { Backend, CandidateGroup, CandidateItem, CandidateView, Drive, Evidence, NodeTree, NodeView, Progress, ScanSummary } from './api'
+import type { AIEvent, AISettingsView, Backend, Finding, CandidateGroup, CandidateItem, CandidateView, Drive, Evidence, NodeTree, NodeView, Progress, ScanSummary } from './api'
 
 type FakeNode = { name: string; kind: string; size: number; children: FakeNode[]; incomplete?: boolean }
 
@@ -166,6 +166,98 @@ export const mockEvents = {
 
 let timer: ReturnType<typeof setInterval> | undefined
 
+const providers = [
+  { id: 'deepseek', name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', defaultModel: 'deepseek-chat' },
+  { id: 'qwen', name: '通义千问', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', defaultModel: 'qwen-plus' },
+  { id: 'kimi', name: 'Kimi', baseUrl: 'https://api.moonshot.cn/v1', defaultModel: 'moonshot-v1-32k' },
+  { id: 'zhipu', name: '智谱', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', defaultModel: 'glm-4-flash' },
+  { id: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', defaultModel: 'gpt-4o-mini' },
+  { id: 'custom', name: '自定义', baseUrl: '', defaultModel: '' },
+]
+const aiSettings: AISettingsView = { provider: 'deepseek', baseUrl: providers[0].baseUrl, model: providers[0].defaultModel, hasKey: false, providers }
+
+const lancedbPaths = ['darwin-arm64', 'darwin-x64', 'linux-arm64-gnu', 'linux-arm64-musl', 'linux-x64-gnu', 'linux-x64-musl', 'win32-arm64-msvc'].map(
+  (p) => `D:\\Projects\\pare\\node_modules\\@lancedb\\lancedb-${p}`,
+)
+
+const mockFindings: Finding[] = [
+  {
+    id: 'f1',
+    title: 'WSL 虚拟磁盘 11.1 GB，其中约 4.3 GB 是死空间',
+    summary: 'Ubuntu-24.04 的 ext4.vhdx 占 11.1 GB，里面实际数据只有约 6.8 GB，其余是删除文件后没有回收的空间。',
+    cause: '.wslconfig 里写了 sparseVhd=true，但当前 WSL 版本不识别这个键，所以虚拟磁盘从不自动收缩。',
+    paths: ['C:\\Users\\me\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu24.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx', 'C:\\Users\\me\\.wslconfig'],
+    bytes: 11.08 * GB,
+    risk: 'careful',
+    confidence: 'high',
+    regrowth: '会。虚拟磁盘只增不减，之后在 WSL 里写入删除大量文件还会再次膨胀，需要定期压缩或启用稀疏模式。',
+    evidence: ['ext4.vhdx 文件大小 11.08 GB', 'WSL 内 df 显示已用 6.8 GB', '.wslconfig 中存在 sparseVhd=true', 'wsl --version 为 1.2.5，低于支持稀疏盘的版本'],
+    actions: [
+      { kind: 'template', label: '把 Ubuntu-24.04 迁移到 D 盘', explain: '导出并导入到 D 盘，C 盘立刻腾出空间，导入时顺便压缩。', bytes: 11.08 * GB, template: 'wsl_move', params: { distro: 'Ubuntu-24.04', target: 'D:\\WSL\\Ubuntu-24.04' } },
+      { kind: 'template', label: '开启稀疏磁盘', explain: '对该发行版启用 sparse，之后删除的文件会自动回收。', bytes: 4.3 * GB, template: 'wsl_set_sparse', params: { distro: 'Ubuntu-24.04' } },
+      { kind: 'config', label: '修正 .wslconfig', explain: '把无效的 sparseVhd 键移到受支持的位置。', bytes: 0, paths: ['C:\\Users\\me\\.wslconfig'] },
+    ],
+  },
+  {
+    id: 'f2',
+    title: '罗技 G HUB 更新包残留 35.8 GB',
+    summary: '系统临时目录里堆了 14 个 G HUB 下载的更新包，都已安装过，不会再被使用。',
+    cause: 'G HUB 的自动更新下载后不清理安装包。',
+    paths: ['C:\\Windows\\SystemTemp'],
+    bytes: 35.8 * GB,
+    risk: 'safe',
+    confidence: 'high',
+    regrowth: '会。只要 G HUB 自动更新开着，每次更新都会留下新的安装包。',
+    evidence: ['SystemTemp 下 14 个 lghub_*.exe / .zip', '文件修改时间集中在最近半年', '对应版本已安装，没有进程占用'],
+    actions: [
+      { kind: 'quarantine', label: '移入隔离区', explain: '整个目录内容移走，可随时撤回。', bytes: 35.8 * GB, paths: ['C:\\Windows\\SystemTemp'] },
+      { kind: 'manual', label: '在 G HUB 设置里关闭自动更新', explain: '避免之后再次堆积。', bytes: 0 },
+    ],
+  },
+  {
+    id: 'f3',
+    title: 'lancedb 装了 8 个平台的原生二进制，浪费 767 MB',
+    summary: 'node_modules 里 @lancedb 下有 8 个平台的原生包，本机只会用到 win32-x64。',
+    cause: 'npm 安装时把所有可选平台依赖一并下载。',
+    paths: lancedbPaths,
+    bytes: 767 * MB,
+    risk: 'rebuildable',
+    confidence: 'medium',
+    regrowth: '重新执行 npm install 可能再次装回，可用 --omit=optional 避免。',
+    evidence: ['node_modules/@lancedb 下共 8 个平台目录', '当前系统为 win32-x64', '其余 7 个目录合计 767 MB'],
+    actions: [
+      { kind: 'quarantine', label: '移走 7 个其他平台的包', explain: '保留 win32-x64，其余移入隔离区。', bytes: 767 * MB, paths: lancedbPaths },
+      { kind: 'command', label: '重新构建依赖', explain: '让 npm 只保留需要的平台。', bytes: 0, command: 'npm rebuild @lancedb/lancedb' },
+    ],
+  },
+]
+
+let aiTimers: ReturnType<typeof setTimeout>[] = []
+let aiRunning = false
+let emittedFindings: Finding[] = []
+let consentResolve: ((allow: boolean) => void) | undefined
+let aiTokens = 0
+
+function aiEmit(e: AIEvent) {
+  aiTokens += 400 + Math.round(Math.random() * 300)
+  mockEvents.emit('ai:event', { ...e, tokens: aiTokens })
+}
+function aiAt(ms: number, fn: () => void) {
+  aiTimers.push(setTimeout(() => aiRunning && fn(), ms))
+}
+function aiFinish(cancelled: boolean) {
+  aiRunning = false
+  consentResolve = undefined
+  aiTimers.forEach(clearTimeout)
+  aiTimers = []
+  mockEvents.emit('ai:finished', { findings: emittedFindings, error: '', cancelled })
+}
+function aiFinding(i: number, step: number) {
+  emittedFindings.push(mockFindings[i])
+  aiEmit({ kind: 'finding', step, finding: mockFindings[i] })
+}
+const j = (v: unknown) => JSON.stringify(v)
+
 export const mockBackend: Backend = {
   async Elevated() {
     return false
@@ -217,5 +309,78 @@ export const mockBackend: Backend = {
   async BuildCandidates() {
     await new Promise((resolve) => setTimeout(resolve, 600))
     return mockCandidates()
+  },
+  async GetAISettings() {
+    return { ...aiSettings }
+  },
+  async SaveAISettings(input) {
+    aiSettings.provider = input.provider
+    aiSettings.baseUrl = input.baseUrl
+    aiSettings.model = input.model
+    if (input.clearKey) aiSettings.hasKey = false
+    if (input.apiKey) aiSettings.hasKey = true
+  },
+  async TestAI() {
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    if (!aiSettings.hasKey) throw new Error('AI 尚未配置')
+    return '连接正常'
+  },
+  async StartInvestigation(scope) {
+    if (!aiSettings.hasKey) throw new Error('AI 尚未配置，请先在设置里填写 API Key')
+    aiTimers.forEach(clearTimeout)
+    aiTimers = []
+    aiRunning = true
+    emittedFindings = []
+    aiTokens = 0
+    const dir = scope || root.path
+    const envPath = 'C:\\Users\\me\\project\\.env'
+    aiEmit({ kind: 'thinking', step: 1 })
+    aiAt(800, () => aiEmit({ kind: 'tool', step: 1, tool: 'scan_overview', args: j({ path: dir, depth: 2 }) }))
+    aiAt(1300, () => aiEmit({ kind: 'result', step: 1, tool: 'scan_overview', text: `${dir} 共 1.2 TB，最大的子目录：Steam 412 GB、Users 233 GB、Projects 31 GB。` }))
+    aiAt(1800, () => aiEmit({ kind: 'thinking', step: 2 }))
+    aiAt(2500, () => aiEmit({ kind: 'tool', step: 2, tool: 'list_dir', args: j({ path: 'C:\\Users\\me', limit: 20 }) }))
+    aiAt(3000, () => aiEmit({ kind: 'result', step: 2, tool: 'list_dir', text: 'AppData 190 GB\nProjects 31 GB\n.wslconfig 112 B\n.env 0.3 KB\n……' }))
+    aiAt(3400, () => aiEmit({ kind: 'thinking', step: 3 }))
+    aiAt(4000, () => aiEmit({ kind: 'tool', step: 3, tool: 'run_diagnostic', args: j({ name: 'wsl_disk_usage' }) }))
+    aiAt(4600, () => aiEmit({ kind: 'result', step: 3, tool: 'run_diagnostic', text: 'Ubuntu-24.04: vhdx 11.08 GB, used 6.8 GB, sparse=false\nwsl 1.2.5' }))
+    aiAt(5000, () => {
+      aiEmit({ kind: 'tool', step: 4, tool: 'file_head', args: j({ path: 'C:\\Users\\me\\.wslconfig', bytes: 2000 }) })
+      aiEmit({ kind: 'result', step: 4, tool: 'file_head', text: '[wsl2]\nmemory=8GB\nsparseVhd=true' })
+      aiFinding(0, 4)
+    })
+    aiAt(5800, () => {
+      aiEmit({ kind: 'thinking', step: 5 })
+      aiEmit({ kind: 'tool', step: 5, tool: 'file_head', args: j({ path: envPath, bytes: 500 }) })
+      mockEvents.emit('ai:consent', { id: 'consent-1', path: envPath, reason: '读取文本内容' })
+      new Promise<boolean>((resolve) => (consentResolve = resolve)).then((allow) => {
+        if (!aiRunning) return
+        aiEmit({ kind: 'result', step: 5, tool: 'file_head', text: allow ? 'NODE_ENV=development\n（内容已读取，与清理无关）' : '用户拒绝读取，仅有文件名和大小' })
+        aiAt(1200, () => {
+          aiEmit({ kind: 'tool', step: 6, tool: 'list_dir', args: j({ path: 'C:\\Windows\\SystemTemp' }) })
+          aiEmit({ kind: 'result', step: 6, tool: 'list_dir', text: 'lghub_installer_2024.1.exe 2.4 GB\nlghub_update_2024.2.zip 2.6 GB\n……（共 14 项）' })
+          aiFinding(1, 6)
+        })
+        aiAt(2400, () => {
+          aiEmit({ kind: 'thinking', step: 7 })
+          aiEmit({ kind: 'tool', step: 7, tool: 'list_dir', args: j({ path: 'D:\\Projects\\pare\\node_modules\\@lancedb' }) })
+          aiFinding(2, 7)
+        })
+        aiAt(3600, () => {
+          aiEmit({ kind: 'message', step: 8, text: '共发现 3 个问题，合计可回收约 47.7 GB。其中罗技更新包最大且最安全；WSL 虚拟磁盘建议先迁移，再开启稀疏模式。' })
+          aiEmit({ kind: 'done', step: 8 })
+          aiFinish(false)
+        })
+      })
+    })
+  },
+  async StopInvestigation() {
+    if (aiRunning) aiFinish(true)
+  },
+  async AnswerConsent(_id, allow) {
+    consentResolve?.(allow)
+    consentResolve = undefined
+  },
+  async Findings() {
+    return [...emittedFindings]
   },
 }

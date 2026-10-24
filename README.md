@@ -81,7 +81,18 @@ Exit codes: 0 every item moved (or restored), 2 invalid arguments or missing con
 
 ## Desktop app (preview)
 
-`desktop/` is a Wails v2 app (Go backend, Svelte frontend in WebView2) that builds into a single `pare-desktop.exe`. This first version covers the "看清" (see) stage: pick a drive or folder, watch scan progress, then browse a directory tree linked to a treemap of the selected folder, with coverage gaps listed and incomplete folders marked. Planning, quarantine and undo stay in the CLI for now. The UI is Chinese only.
+`desktop/` is a Wails v2 app (Go backend, Svelte frontend in WebView2) that builds into a single `pare-desktop.exe`. The UI is Chinese only.
+
+- **看清 (see):** pick a drive or folder, watch scan progress, then browse a directory tree linked to a treemap of the selected folder, with coverage gaps listed and incomplete folders marked.
+- **决定 (decide):** the main tab is an AI investigation; a secondary "常规缓存" tab shows the built-in rule candidates with evidence and selection.
+
+### AI investigation
+
+Pare's focus is waste that is specific to one machine (updaters that leak packages, virtual disks that never shrink, settings that silently do not apply, binaries for platforms the machine will never run) rather than a rule library competing with commercial cleaners. The `internal/advisor` package runs an agent loop against any OpenAI-compatible chat API (DeepSeek, Qwen, Kimi, Zhipu, OpenAI presets or a custom URL). The API key is stored encrypted with Windows DPAPI under `%APPDATA%\Pare\advisor.json`.
+
+The model only gets read-only tools: queries over the scan index (directories, large files, clusters of identically sized files, extension and age breakdowns), file headers and text, live size and lock state, installed programs, running processes, and an allowlist of diagnostic commands (`wsl --list`, `df`/`du` inside a WSL distro, `fsutil sparse queryflag`, `pnputil /enum-drivers`, `Dism /AnalyzeComponentStore`, `vssadmin list shadowstorage`, `docker system df`, `powercfg /a`). Commands are started directly from an argument array, never through a shell, and distro names and paths are validated. Locally computed hints (huge files, virtual disks, same-size clusters, zero-byte floods, side-by-side versions, multi-platform binaries) seed each run. Directory structure, file names and file content are sent to the chosen provider; reading the content of credential-like files (SSH keys, `.env`, browser login data, certificates, credential stores) asks the user each time.
+
+Each finding states the cause, the evidence, whether it will grow back, and one or more options: quarantine (reversible), a supported action template, a command outside the templates, a config change, or manual steps. Executing these options is the next stage; the app currently only shows and lets you choose them.
 
 ```powershell
 pnpm --dir desktop/frontend install

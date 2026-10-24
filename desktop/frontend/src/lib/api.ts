@@ -76,6 +76,48 @@ export type CandidateView = {
   rules: CandidateGroup[]
 }
 
+export type Provider = { id: string; name: string; baseUrl: string; defaultModel: string }
+export type AISettingsView = { provider: string; baseUrl: string; model: string; hasKey: boolean; providers: Provider[] }
+export type AISettingsInput = { provider: string; baseUrl: string; model: string; apiKey: string; clearKey: boolean }
+
+export type Action = {
+  kind: 'quarantine' | 'template' | 'command' | 'config' | 'manual'
+  label: string
+  explain: string
+  bytes: number
+  paths?: string[]
+  template?: string
+  params?: Record<string, string>
+  command?: string
+}
+
+export type Finding = {
+  id: string
+  title: string
+  summary: string
+  cause: string
+  paths: string[]
+  bytes: number
+  risk: 'safe' | 'rebuildable' | 'careful' | 'system'
+  confidence: 'high' | 'medium' | 'low'
+  regrowth: string
+  evidence: string[]
+  actions: Action[]
+}
+
+export type AIEvent = {
+  kind: 'thinking' | 'tool' | 'result' | 'finding' | 'message' | 'error' | 'done'
+  step: number
+  tool?: string
+  args?: string
+  text?: string
+  finding?: Finding
+  tokens?: number
+}
+
+export type AIConsent = { id: string; path: string; reason: string }
+export type AIFinished = { findings: Finding[]; error: string; cancelled: boolean }
+
 export interface Backend {
   Elevated(): Promise<boolean>
   Drives(): Promise<Drive[]>
@@ -86,6 +128,13 @@ export interface Backend {
   Subtree(path: string, depth: number, limit: number): Promise<NodeTree>
   Reveal(path: string): Promise<void>
   BuildCandidates(refresh: boolean): Promise<CandidateView>
+  GetAISettings(): Promise<AISettingsView>
+  SaveAISettings(input: AISettingsInput): Promise<void>
+  TestAI(): Promise<string>
+  StartInvestigation(scope: string, note: string): Promise<void>
+  StopInvestigation(): Promise<void>
+  AnswerConsent(id: string, allow: boolean): Promise<void>
+  Findings(): Promise<Finding[]>
 }
 
 const host = window as unknown as {
