@@ -11,6 +11,7 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"github.com/DRAG0NM/Pare/internal/advisor"
 	"github.com/DRAG0NM/Pare/internal/model"
 	"github.com/DRAG0NM/Pare/internal/scanner"
 	"github.com/DRAG0NM/Pare/internal/tree"
@@ -27,7 +28,13 @@ type App struct {
 	tree   *tree.Tree
 	report model.ScanReport
 	// plan is the latest plan built from report; a new scan discards it.
-	plan *model.Plan
+	plan       *model.Plan
+	root       string
+	volumeUsed uint64
+
+	// findings collects AI findings since the latest scan.
+	findings []advisor.Finding
+	ai       investigation
 }
 
 func NewApp() *App {
@@ -133,6 +140,7 @@ func (a *App) StartScan(root string) error {
 		a.cancel = nil
 		if !summary.Cancelled {
 			a.tree, a.report, a.plan = built, report, nil
+			a.root, a.volumeUsed, a.findings = absolute, summary.VolumeUsed, nil
 		}
 		a.mu.Unlock()
 		cancel()
