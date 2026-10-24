@@ -3,7 +3,9 @@ package advisor
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -51,11 +53,13 @@ var diagnostics = map[string]diagnostic{
 	"wsl_df": {"WSL 发行版内各文件系统的容量和已用（会启动该发行版）", 2 * time.Minute, func(distro, _ string) ([]string, error) {
 		return []string{"wsl.exe", "-d", distro, "-e", "df", "-h"}, needDistro(distro)
 	}},
+	// du runs as root: as a normal user it hits unreadable directories (/root, /proc) and
+	// exits 1. It only reports sizes, never file content.
 	"wsl_du": {"WSL 内某个目录下各子目录的大小", 5 * time.Minute, func(distro, path string) ([]string, error) {
 		if err := needDistro(distro); err != nil {
 			return nil, err
 		}
-		return []string{"wsl.exe", "-d", distro, "-e", "du", "-xh", "--max-depth=1", "--", path}, linuxPath(path)
+		return []string{"wsl.exe", "-d", distro, "-u", "root", "-e", "du", "-xh", "--max-depth=1", "--", path}, linuxPath(path)
 	}},
 	"wsl_ls": {"列出 WSL 内某个目录", time.Minute, func(distro, path string) ([]string, error) {
 		if err := needDistro(distro); err != nil {
@@ -130,8 +134,13 @@ func (e *Environment) diagnostic(ctx context.Context, raw json.RawMessage) (stri
 	}
 	runCtx, cancel := context.WithTimeout(ctx, d.timeout)
 	defer cancel()
-	output, err := runCommand(runCtx, argv)
-	text := strings.TrimSpace(decodeText(output))
+	text, err := runCommand(runCtx, argv)
+	var exit *exec.ExitError
+	if errors.As(err, &exit) && exit.ExitCode() == 1 && text != "" {
+		// du, ls and friends exit 1 when part of the tree is unreadable but still print
+		// everything else, which is worth showing.
+		return fmt.Sprintf("$ %s\n（退出码 1：部分条目无法读取，以下结果仍然有效）\n%s", strings.Join(argv, " "), text), nil
+	}
 	if err != nil {
 		return fmt.Sprintf("命令 %s 失败：%v\n%s", strings.Join(argv, " "), err, text), nil
 	}

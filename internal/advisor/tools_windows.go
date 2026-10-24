@@ -3,9 +3,11 @@
 package advisor
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -20,15 +22,24 @@ import (
 
 const createNoWindow = 0x08000000
 
-// runCommand runs argv without a shell and without flashing a console window.
-func runCommand(ctx context.Context, argv []string) ([]byte, error) {
+// runCommand runs argv without a shell and without flashing a console window. Stdout and
+// stderr are decoded separately: wsl.exe writes its own messages as UTF-16 while the
+// Linux command inside writes UTF-8, and mixing them garbles both.
+func runCommand(ctx context.Context, argv []string) (string, error) {
 	command := exec.CommandContext(ctx, argv[0], argv[1:]...)
 	command.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: createNoWindow}
-	output, err := command.CombinedOutput()
-	if ctx.Err() != nil {
-		return output, fmt.Errorf("超时或被取消")
+	command.Env = append(os.Environ(), "WSL_UTF8=1")
+	var stdout, stderr bytes.Buffer
+	command.Stdout, command.Stderr = &stdout, &stderr
+	err := command.Run()
+	text := strings.TrimSpace(decodeText(stdout.Bytes()))
+	if extra := strings.TrimSpace(decodeText(stderr.Bytes())); extra != "" {
+		text = strings.TrimSpace(text + "\n" + extra)
 	}
-	return output, err
+	if ctx.Err() != nil {
+		return text, fmt.Errorf("超时或被取消")
+	}
+	return text, err
 }
 
 var (

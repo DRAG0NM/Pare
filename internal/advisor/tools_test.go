@@ -140,7 +140,7 @@ func TestDiagnosticsRejectUnsafeArguments(t *testing.T) {
 			t.Errorf("run_diagnostic(%v) accepted unsafe arguments", args)
 		}
 	}
-	if argv, err := diagnostics["wsl_du"].build("Ubuntu-24.04", "/home/me"); err != nil || strings.Join(argv, " ") != "wsl.exe -d Ubuntu-24.04 -e du -xh --max-depth=1 -- /home/me" {
+	if argv, err := diagnostics["wsl_du"].build("Ubuntu-24.04", "/home/me"); err != nil || strings.Join(argv, " ") != "wsl.exe -d Ubuntu-24.04 -u root -e du -xh --max-depth=1 -- /home/me" {
 		t.Errorf("wsl_du argv = %v, %v", argv, err)
 	}
 }

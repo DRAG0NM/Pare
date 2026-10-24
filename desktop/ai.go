@@ -135,7 +135,7 @@ func (a *App) StartInvestigation(scope, note string) error {
 	agent := advisor.Agent{
 		Client:   advisor.NewClient(settings),
 		Tools:    env.Tools(),
-		MaxSteps: 60,
+		MaxSteps: 40,
 		Emit:     func(e advisor.Event) { runtime.EventsEmit(a.ctx, "ai:event", e) },
 	}
 	go func() {

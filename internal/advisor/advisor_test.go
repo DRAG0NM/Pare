@@ -70,6 +70,71 @@ func TestAgentRunsToolsAndCollectsFindings(t *testing.T) {
 	}
 }
 
+// specModel records which tools each request offered.
+type specModel struct {
+	scriptedModel
+	offered [][]string
+}
+
+func (m *specModel) Chat(ctx context.Context, messages []Message, tools []ToolSpec) (Message, Usage, error) {
+	var names []string
+	for _, tool := range tools {
+		names = append(names, tool.Function.Name)
+	}
+	m.offered = append(m.offered, names)
+	return m.scriptedModel.Chat(ctx, messages, tools)
+}
+
+func TestAgentNudgesSamplingAndWrapsUpWhenStepsRunOut(t *testing.T) {
+	head := func(id, file string) ToolCall {
+		return toolCall(id, "file_head", `{"path":"C:/data/`+file+`"}`)
+	}
+	model := &specModel{scriptedModel: scriptedModel{replies: []Message{
+		{Role: "assistant", ToolCalls: []ToolCall{head("1", "a"), head("2", "b"), head("3", "c")}},
+		{Role: "assistant", ToolCalls: []ToolCall{head("4", "d"), head("5", "e")}},
+		{Role: "assistant", ToolCalls: []ToolCall{head("6", "f")}},
+		// Wrap-up phase: a stray investigation call is refused, a report is accepted.
+		{Role: "assistant", ToolCalls: []ToolCall{head("7", "g"), toolCall("8", "report_finding", `{"title":"T","summary":"S","cause":"C","bytes":1,"risk":"safe","confidence":"low","evidence":[],"actions":[]}`)}},
+		{Role: "assistant", Content: "总结"},
+	}}}
+	agent := Agent{
+		Client:   model,
+		MaxSteps: 3,
+		Tools: []Tool{{Name: "file_head", Parameters: `{"type":"object"}`, Run: func(context.Context, json.RawMessage) (string, error) {
+			return "bytes", nil
+		}}},
+	}
+
+	findings, err := agent.Run(context.Background(), "sys", "user")
+
+	if err != nil || len(findings) != 1 {
+		t.Fatalf("findings = %+v, %v; want the wrap-up report kept", findings, err)
+	}
+	second := model.seen[2]
+	var fifth, nudge string
+	for _, m := range second {
+		if m.ToolCallID == "5" {
+			fifth = m.Content
+		}
+		if m.Role == "user" && strings.Contains(m.Content, "还没有报告任何发现") {
+			nudge = m.Content
+		}
+	}
+	if !strings.Contains(fifth, "样本已经足够") {
+		t.Errorf("fifth read of one directory = %q, want a sampling note", fifth)
+	}
+	if nudge == "" {
+		t.Error("no nudge after 60% of the steps without findings")
+	}
+	if got := model.offered[3]; len(got) != 1 || got[0] != "report_finding" {
+		t.Errorf("tools offered in wrap-up = %v, want only report_finding", got)
+	}
+	wrap := model.seen[4]
+	if refused := wrap[len(wrap)-2].Content; !strings.Contains(refused, "只能调用 report_finding") {
+		t.Errorf("investigation call during wrap-up got %q", refused)
+	}
+}
+
 func TestClientSendsToolsAndParsesToolCalls(t *testing.T) {
 	var request map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

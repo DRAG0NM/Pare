@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -114,12 +115,25 @@ func (a Agent) Run(ctx context.Context, system, user string) ([]Finding, error) 
 	messages := []Message{{Role: "system", Content: system}, {Role: "user", Content: user}}
 	var findings []Finding
 	tokens := 0
-	for step := 1; step <= maxSteps; step++ {
+	nudged, wrapping := false, false
+	samples := map[string]int{}
+	for step := 1; step <= maxSteps+wrapUpSteps; step++ {
 		if err := ctx.Err(); err != nil {
 			return findings, err
 		}
+		if step == maxSteps+1 {
+			// Out of investigation steps: let the model report what it already knows
+			// instead of losing the whole run.
+			wrapping = true
+			messages = append(messages, Message{Role: "user", Content: wrapUpPrompt})
+			emit(Event{Kind: EventMessage, Step: step, Text: fmt.Sprintf("已用完 %d 步调查，正在整理已确认的问题…", maxSteps)})
+		}
+		available := specs
+		if wrapping {
+			available = specs[len(specs)-1:]
+		}
 		emit(Event{Kind: EventThinking, Step: step, Tokens: tokens})
-		reply, usage, err := a.Client.Chat(ctx, messages, specs)
+		reply, usage, err := a.Client.Chat(ctx, messages, available)
 		if err != nil {
 			emit(Event{Kind: EventError, Step: step, Text: err.Error()})
 			return findings, err
@@ -149,17 +163,49 @@ func (a Agent) Run(ctx context.Context, system, user string) ([]Finding, error) 
 					emit(Event{Kind: EventFinding, Step: step, Finding: &finding})
 					result = "已记录 " + finding.ID
 				}
+			} else if wrapping {
+				result = "调查步数已用完，现在只能调用 report_finding。"
 			} else {
 				emit(Event{Kind: EventTool, Step: step, Tool: name, Args: args})
-				result = a.call(ctx, tools, name, args)
+				result = a.call(ctx, tools, name, args) + samplingNote(samples, name, args)
 				emit(Event{Kind: EventResult, Step: step, Tool: name, Text: clip(result, 2000)})
 			}
 			messages = append(messages, Message{Role: "tool", ToolCallID: call.ID, Content: clip(result, limit)})
 		}
+		if !nudged && !wrapping && len(findings) == 0 && step >= maxSteps*6/10 {
+			nudged = true
+			messages = append(messages, Message{Role: "user", Content: fmt.Sprintf(nudgePrompt, step, maxSteps)})
+		}
 	}
-	emit(Event{Kind: EventMessage, Text: fmt.Sprintf("已达到最多 %d 步，调查提前结束。", maxSteps), Tokens: tokens})
+	emit(Event{Kind: EventMessage, Text: "调查结束（步数用完）。", Tokens: tokens})
 	emit(Event{Kind: EventDone, Tokens: tokens})
 	return findings, nil
+}
+
+// wrapUpSteps are extra rounds after MaxSteps in which only report_finding is offered.
+const wrapUpSteps = 6
+
+const nudgePrompt = `（系统提醒）你已经用了 %d/%d 步，还没有报告任何发现。请先用 report_finding 报告已经有证据的问题，再决定是否继续调查；剩余步数请优先用在占用最大的位置。`
+
+const wrapUpPrompt = `（系统提醒）调查步数已经用完。请根据目前已经掌握的证据，用 report_finding 逐条报告所有已确认或基本确认的问题（证据不足的把 confidence 设为 low），全部报告完后用一段话总结。不要再调用其他工具。`
+
+// samplingNote warns the model after it reads many files of one directory one by one.
+func samplingNote(samples map[string]int, name, args string) string {
+	if name != "file_head" && name != "read_text" {
+		return ""
+	}
+	var parsed struct {
+		Path string `json:"path"`
+	}
+	if json.Unmarshal([]byte(args), &parsed) != nil || parsed.Path == "" {
+		return ""
+	}
+	key := filepath.Dir(parsed.Path)
+	samples[key]++
+	if samples[key] <= 4 {
+		return ""
+	}
+	return fmt.Sprintf("\n（提示：你已经在 %s 里逐个读了 %d 个文件，样本已经足够。请根据已有证据下结论，或换到占用更大的位置。）", key, samples[key])
 }
 
 func (a Agent) call(ctx context.Context, tools map[string]Tool, name, args string) string {
