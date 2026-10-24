@@ -85,3 +85,17 @@ export function ageText(iso: string): string {
   const days = daysAgo(iso)
   return days > 3650 ? iso.slice(0, 10) : `${days} 天前`
 }
+
+// Item reasons and result details from the execution core, shown in Chinese.
+export function execText(s: string): string {
+  if (s === 'file no longer exists') return '已不存在（可能已清理）'
+  if (s === 'file is open in another process') return '正被其他程序使用'
+  if (s.startsWith('changed since scan:')) return '扫描后已变化，请重新扫描'
+  if (s.startsWith('changed since plan:')) return '生成方案后已变化，请重新扫描'
+  if (s === 'system file') return '系统文件'
+  const m = s.match(/file ID appears at (\d+) paths/)
+  if (m) return `硬链接，同一文件在 ${m[1]} 个位置`
+  if (s === 'a file inside the directory is in use') return '文件夹里有文件正被使用'
+  if (s.startsWith('protected location:')) return '受保护的位置：' + s.slice('protected location:'.length).trimStart()
+  return s
+}

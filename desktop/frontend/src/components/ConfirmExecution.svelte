@@ -1,9 +1,10 @@
 <script lang="ts">
   import { backend, type ActionResult, type PreparedAction } from '../lib/api'
-  import { close, exec, execute } from '../lib/execution.svelte'
+  import { close, exec, execute, GONE_REASON, isGone } from '../lib/execution.svelte'
   import { bytes, middle } from '../lib/format'
+  import { execText } from '../lib/labels'
 
-  let { onGoUndo }: { onGoUndo: () => void } = $props()
+  let { onUndoPage, onRescan, onContinue }: { onUndoPage: () => void; onRescan: () => void; onContinue: () => void } = $props()
 
   const MAX_ITEMS = 50
   const kindBadge: Record<PreparedAction['kind'], { text: string; tone: string }> = {
@@ -20,6 +21,7 @@
   let purge = $state<'idle' | 'ask' | 'busy' | 'done'>('idle')
   let purgeFreed = $state(0)
   let purgeError = $state('')
+  let goneOpen = $state<Record<string, boolean>>({})
 
   const actions = $derived(exec.preview?.actions ?? [])
   const accepted = $derived(actions.filter((a) => a.runnable && exec.accepted[a.key]))
@@ -51,7 +53,15 @@
 
   function goUndo() {
     close()
-    onGoUndo()
+    onUndoPage()
+  }
+  function rescan() {
+    close()
+    onRescan()
+  }
+  function continueRun() {
+    // App closes the dialog itself; this only hands over control.
+    onContinue()
   }
 
   function onKey(e: KeyboardEvent) {
@@ -72,7 +82,10 @@
       <div class="list">
         {#each actions as a (a.key)}
           {@const badge = kindBadge[a.kind]}
-          <section class="card" class:off={!a.runnable}>
+          {@const gone = isGone(a)}
+          {@const liveItems = a.items.filter((it) => it.reason !== GONE_REASON)}
+          {@const goneItems = a.items.filter((it) => it.reason === GONE_REASON)}
+          <section class="card" class:off={!a.runnable} class:gone>
             <div class="head">
               <input type="checkbox" aria-label="执行这一项" checked={!!exec.accepted[a.key]} disabled={!a.runnable || (a.kind === 'command' && !readCmd[a.key])} onchange={(e) => setAccepted(a, e.currentTarget.checked)} />
               <div class="titles">
@@ -83,6 +96,7 @@
               {#if a.needsAdmin}<span class="badge warn">需要管理员权限</span>{/if}
               {#if a.bytes > 0}<span class="size">{bytes(a.bytes)}</span>{/if}
             </div>
+            {#if gone}<p class="muted small">已不存在，可能已经清理过</p>{/if}
             {#if a.error}<p class="warn small">{a.error}</p>{/if}
             {#if a.kind === 'config' || a.kind === 'manual'}
               <p class="small instr">{a.explain}</p>
@@ -90,15 +104,28 @@
             {:else}
               {#if a.kind === 'quarantine' && a.items.length}
                 <ul class="items">
-                  {#each a.items.slice(0, MAX_ITEMS) as it}
+                  {#each liveItems.slice(0, MAX_ITEMS) as it}
                     <li class="mono" class:bad={!it.executable} title={it.path}>
                       <span class="mark">{it.executable ? '✓' : '✗'}</span>
                       <span class="p">{middle(it.path, 80)}</span>
-                      {#if it.executable}<span class="muted">{bytes(it.bytes)}</span>{:else}<span class="warn">{it.reason}</span>{/if}
+                      {#if it.executable}<span class="muted">{bytes(it.bytes)}</span>{:else}<span class="warn">{execText(it.reason)}</span>{/if}
                     </li>
                   {/each}
                 </ul>
-                {#if a.items.length > MAX_ITEMS}<p class="muted small">…另有 {a.items.length - MAX_ITEMS} 项</p>{/if}
+                {#if liveItems.length > MAX_ITEMS}<p class="muted small">…另有 {liveItems.length - MAX_ITEMS} 项</p>{/if}
+                {#if goneItems.length}
+                  <button class="gone-row small" onclick={() => (goneOpen[a.key] = !goneOpen[a.key])}>
+                    已不存在（可能已清理）{goneItems.length} 项 {goneOpen[a.key] ? '▾' : '▸'}
+                  </button>
+                  {#if goneOpen[a.key]}
+                    <ul class="items muted">
+                      {#each goneItems.slice(0, MAX_ITEMS) as it}
+                        <li class="mono" title={it.path}><span class="p">{middle(it.path, 80)}</span></li>
+                      {/each}
+                    </ul>
+                    {#if goneItems.length > MAX_ITEMS}<p class="muted small">…另有 {goneItems.length - MAX_ITEMS} 项</p>{/if}
+                  {/if}
+                {/if}
               {/if}
               {#if a.steps.length}<pre class="mono code">{a.steps.join('\n')}</pre>{/if}
               {#if a.warnings.length}
@@ -138,7 +165,7 @@
             </span>
             <div class="rbody">
               <strong class="ell">{a.label}</strong>
-              <span class="muted small">{r?.detail || (r ? '' : '等待中…')}</span>
+              <span class="muted small">{r ? execText(r.detail) : '等待中…'}</span>
             </div>
           </div>
         {/each}
@@ -155,7 +182,7 @@
             <span class="ic" class:bad={r.status === 'failed'}>{statusIcon[r.status]}</span>
             <div class="rbody">
               <strong class="ell">{r.label}</strong>
-              <span class="small" class:warn={r.status === 'failed' || r.status === 'partial'}>{r.detail}</span>
+              <span class="small" class:warn={r.status === 'failed' || r.status === 'partial'}>{execText(r.detail)}</span>
               {#if r.output}
                 <details>
                   <summary class="small muted">查看输出</summary>
@@ -166,17 +193,12 @@
           </div>
         {/each}
       </div>
-      {#if purge === 'done'}<p class="lead">已永久清空，释放了 {bytes(purgeFreed)}。</p>{/if}
-      {#if purgeError}<p class="warn small">{purgeError}</p>{/if}
-      <footer>
-        <div class="summary">
-          {#if purge === 'ask'}
-            <span class="warn">这些文件将被永久删除，无法恢复。确定？</span>
-          {/if}
-        </div>
-        <div class="buttons">
+      <div class="next-steps">
+        <strong class="small">下一步</strong>
+        <div class="buttons left">
           {#if (exec.report?.manifests.length ?? 0) > 0 && purge !== 'done'}
             {#if purge === 'ask' || purge === 'busy'}
+              <span class="warn small">这些文件将被永久删除，无法恢复。确定？</span>
               <button disabled={purge === 'busy'} onclick={() => (purge = 'idle')}>先不清空</button>
               <button class="primary" disabled={purge === 'busy'} onclick={doPurge}>{purge === 'busy' ? '清空中…' : '确定清空'}</button>
             {:else}
@@ -184,8 +206,16 @@
             {/if}
           {/if}
           <button onclick={goUndo}>去「撤回」页</button>
-          <button onclick={close}>完成</button>
+          <button onclick={rescan}>重新扫描（更新结果）</button>
+          <button onclick={continueRun}>继续调查剩下的问题</button>
         </div>
+        <span class="muted small">清理后原来的扫描结果已经过时，重新扫描可以看到最新占用。</span>
+      </div>
+      {#if purge === 'done'}<p class="lead">已永久清空，释放了 {bytes(purgeFreed)}。</p>{/if}
+      {#if purgeError}<p class="warn small">{purgeError}</p>{/if}
+      <footer>
+        <div class="summary"></div>
+        <div class="buttons"><button onclick={close}>完成</button></div>
       </footer>
     {/if}
   </div>
@@ -284,6 +314,28 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
+  }
+  .card.gone {
+    background: var(--surface-2);
+    opacity: 0.7;
+  }
+  .gone-row {
+    align-self: flex-start;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    padding: 0;
+  }
+  .next-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+  }
+  .buttons.left {
+    justify-content: flex-start;
+    align-items: center;
   }
   .badge {
     font-size: 11px;

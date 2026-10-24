@@ -1,5 +1,5 @@
 // Shared state of the AI investigation, so it survives page and tab switches.
-import { backend, onEvent, type AIConsent, type AIEvent, type AIFinished, type Finding } from './api'
+import { backend, onEvent, type AIConsent, type AIEvent, type AIFinished, type Finding, type InvestigationDepth } from './api'
 
 export const inv = $state({
   scope: '',
@@ -14,6 +14,10 @@ export const inv = $state({
   step: 0,
   pendingConsent: null as AIConsent | null,
   chosen: {} as Record<string, number>,
+  // Findings already executed (fully or partly); kept across continued runs.
+  handled: {} as Record<string, 'done' | 'partial'>,
+  depth: 'standard' as InvestigationDepth,
+  continuing: false,
 })
 
 let initialized = false
@@ -45,10 +49,13 @@ export function initInvestigation() {
       inv.findings = f.findings
       for (const x of f.findings) if (!(x.id in inv.chosen)) inv.chosen[x.id] = 0
     }
+    inv.continuing = false
   })
 }
 
 export function resetInvestigation() {
+  inv.handled = {}
+  inv.continuing = false
   inv.events = []
   inv.findings = []
   inv.summary = ''
@@ -60,13 +67,25 @@ export function resetInvestigation() {
   inv.chosen = {}
 }
 
-export async function startInvestigation() {
-  resetInvestigation()
+export async function startInvestigation(continueRun = false) {
+  if (continueRun) {
+    inv.events = []
+    inv.summary = ''
+    inv.error = ''
+    inv.tokens = 0
+    inv.step = 0
+    inv.finished = false
+    inv.pendingConsent = null
+  } else {
+    resetInvestigation()
+  }
+  inv.continuing = continueRun
   inv.running = true
   try {
-    await backend.StartInvestigation(inv.scope, inv.note)
+    await backend.StartInvestigation(inv.scope, inv.note, inv.depth, continueRun)
   } catch (e) {
     inv.running = false
+    inv.continuing = false
     inv.error = String(e).replace(/^Error:\s*/, '')
   }
 }

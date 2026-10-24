@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte'
   import { SvelteSet } from 'svelte/reactivity'
-  import type { Action, Finding } from '../lib/api'
+  import type { Action, Finding, InvestigationDepth } from '../lib/api'
   import { bytes, middle } from '../lib/format'
   import { openConfirm } from '../lib/execution.svelte'
   import { inv, startInvestigation, stopInvestigation } from '../lib/investigation.svelte'
@@ -19,6 +19,13 @@
     manual: '需手动操作',
   }
 
+  const depthOptions: { id: InvestigationDepth; label: string; hint: string }[] = [
+    { id: 'standard', label: '标准', hint: '约 3–5 分钟，找出主要问题' },
+    { id: 'deep', label: '深入', hint: '约 6–8 分钟，覆盖更多小问题' },
+    { id: 'thorough', label: '彻底', hint: '10 分钟以上，逐个目录排查' },
+  ]
+  const depthHint = $derived(depthOptions.find((d) => d.id === inv.depth)?.hint ?? '')
+
   let selectedId = $state('')
   // Collapsed by default so findings keep the room on small windows; the header still
   // shows the latest step.
@@ -35,7 +42,10 @@
   let logEl = $state<HTMLElement>()
   const expanded = new SvelteSet<number>()
 
-  const selected = $derived(inv.findings.find((f) => f.id === selectedId) ?? inv.findings[0] ?? null)
+  // Handled findings sink to the bottom of the list (stable within each group).
+  const sorted = $derived([...inv.findings.filter((f) => !inv.handled[f.id]), ...inv.findings.filter((f) => inv.handled[f.id])])
+  const selected = $derived(inv.findings.find((f) => f.id === selectedId) ?? sorted[0] ?? null)
+  const canContinue = $derived(inv.finished && !inv.running && inv.findings.length > 0)
   const notConfigured = $derived(inv.error.includes('尚未配置'))
 
   const chosenActions = $derived.by(() => {
@@ -75,12 +85,23 @@
       {#if inv.running}
         <button onclick={stopInvestigation}>停止</button>
       {:else}
-        <button class="primary" onclick={startInvestigation}>开始调查</button>
+        {#if canContinue}
+          <button title="在已有结果的基础上再查一轮，不重复已经报告过的问题" onclick={() => startInvestigation(true)}>继续调查</button>
+        {/if}
+        <button class="primary" onclick={() => startInvestigation(false)}>开始调查</button>
       {/if}
+    </div>
+    <div class="depth small">
+      <div class="seg" role="radiogroup" aria-label="调查深度">
+        {#each depthOptions as d}
+          <button role="radio" aria-checked={inv.depth === d.id} class:on={inv.depth === d.id} disabled={inv.running} onclick={() => (inv.depth = d.id)}>{d.label}</button>
+        {/each}
+      </div>
+      <span class="muted">{depthHint}（按 DeepSeek 计费，通常不到 1 元）</span>
     </div>
     <div class="status small">
       {#if inv.running}
-        <span class="spinner" aria-hidden="true"></span><span>第 {inv.step} 步 · 已用 {inv.tokens} tokens</span>
+        <span class="spinner" aria-hidden="true"></span><span>{inv.continuing ? '继续调查 · ' : ''}第 {inv.step} 步 · 已用 {inv.tokens} tokens</span>
       {:else if inv.error}
         <span class="warn">{inv.error}</span>
       {:else if inv.finished}
@@ -105,10 +126,11 @@
       {#if inv.findings.length === 0}
         <p class="muted empty">还没有发现。开始调查后，AI 每确认一个问题就会出现在这里。</p>
       {/if}
-      {#each inv.findings as f (f.id)}
-        <button class="card" class:active={f.id === selected?.id} onclick={() => pick(f)}>
+      {#each sorted as f (f.id)}
+        <button class="card" class:active={f.id === selected?.id} class:muted-card={!!inv.handled[f.id]} onclick={() => pick(f)}>
           <strong class="title">{f.title}</strong>
           <span class="row">
+            {#if inv.handled[f.id]}<span class="badge handled">{inv.handled[f.id] === 'done' ? '已处理' : '部分处理'}</span>{/if}
             <span class="size">{bytes(f.bytes)}</span>
             <span class="badge {riskTone[f.risk]}">{riskText[f.risk]}</span>
             <span class="muted small">把握 {confText[f.confidence]}</span>
@@ -317,6 +339,43 @@
     text-align: left;
     margin-bottom: 6px;
     padding: 8px 10px;
+  }
+  .card.muted-card {
+    opacity: 0.55;
+  }
+  .badge.handled {
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .depth {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .seg {
+    display: inline-flex;
+  }
+  .seg button {
+    padding: 2px 12px;
+    font-size: 12px;
+    border-radius: 0;
+  }
+  .seg button:first-child {
+    border-radius: 6px 0 0 6px;
+  }
+  .seg button:last-child {
+    border-radius: 0 6px 6px 0;
+  }
+  .seg button + button {
+    margin-left: -1px;
+  }
+  .seg button.on {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+    position: relative;
   }
   .card.active {
     background: var(--accent-soft);

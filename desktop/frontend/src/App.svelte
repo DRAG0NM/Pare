@@ -9,8 +9,8 @@
   import AISettings from './components/AISettings.svelte'
   import UndoPage from './components/UndoPage.svelte'
   import ConfirmExecution from './components/ConfirmExecution.svelte'
-  import { exec, initExecution } from './lib/execution.svelte'
-  import { answerConsent, initInvestigation, inv, resetInvestigation } from './lib/investigation.svelte'
+  import { close as closeExec, exec, initExecution, setRulesDoneHandler } from './lib/execution.svelte'
+  import { answerConsent, initInvestigation, inv, resetInvestigation, startInvestigation } from './lib/investigation.svelte'
 
   type View = 'home' | 'scanning' | 'overview' | 'decide' | 'undo'
 
@@ -55,6 +55,7 @@
   onMount(() => {
     initInvestigation()
     initExecution()
+    setRulesDoneHandler(() => selection.clear())
     const offProgress = onEvent<Progress>('scan:progress', (p) => (progress = p))
     const offDone = onEvent<ScanSummary>('scan:done', (s) => {
       if (s.cancelled) {
@@ -87,6 +88,13 @@
     } catch (e) {
       error = String(e)
     }
+  }
+
+  function continueInvestigation() {
+    closeExec()
+    decideTab = 'ai'
+    view = 'decide'
+    startInvestigation(true)
   }
 
   const stages = [
@@ -140,7 +148,11 @@
 {/if}
 
 {#if exec.phase !== 'idle'}
-  <ConfirmExecution onGoUndo={() => (view = 'undo')} />
+  <ConfirmExecution
+    onUndoPage={() => (view = 'undo')}
+    onRescan={() => scan(summary?.root ?? target)}
+    onContinue={continueInvestigation}
+  />
 {/if}
 
 {#if inv.pendingConsent}

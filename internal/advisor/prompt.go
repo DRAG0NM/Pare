@@ -72,7 +72,7 @@ func SystemPrompt() string {
 - bytes 写处理后预计能回收的字节数；搬到其他盘也算回收当前盘的空间。
 - risk：safe=确定无用的垃圾；rebuildable=删掉后会自动重新生成的缓存；careful=可能含用户数据或仍在使用；system=系统、驱动或组件存储。
 - actions 给出一到三个可选方案，按推荐程度排序：
-  - quarantine：把路径移入 Pare 隔离区，可撤回，执行前 Pare 会再次核对文件是否被占用、是否有变化。适合普通文件和文件夹。
+  - quarantine：把路径移入 Pare 隔离区，可撤回，执行前 Pare 会再次核对文件是否被占用、是否有变化。适合普通文件和文件夹。**只要要处理的东西能用文件或文件夹路径列出来，就用 quarantine**，不要写 Remove-Item、del、rm 之类的删除命令（无论放在 command 还是 manual 里）：删除命令无法撤回，也绕过了 Pare 的检查。需要按通配符挑选文件时，把匹配到的具体路径列在 paths 里。
   - template：使用下面列出的受支持动作，填写 template 和 params。
   - command：模板覆盖不到时，写出完整命令；用户会看到原文并自己决定是否执行，所以必须是可以原样复制运行的命令，不能引用不存在的脚本或文件（例如 diskpart /s 某个 txt），也不能是需要交互输入的程序（例如单独运行 diskpart）；需要多步或交互时改用 manual 写清步骤，并在 explain 里写明风险。
   - config：需要修改配置文件时，在 explain 里写清楚改哪个文件、改什么。
@@ -89,16 +89,37 @@ func SystemPrompt() string {
 
 ## 效率
 - 工具结果可能被截断，需要更多细节时缩小范围再查。
-- 一次调查最多约 40 轮工具调用；一轮里可以同时调用多个互不依赖的工具。不要反复查同一个位置。
+- 本次调查的轮数上限写在任务说明里，按这个预算安排先后；一轮里可以同时调用多个互不依赖的工具。不要反复查同一个位置。
 - WSL 内的 du 以 root 身份运行，个别目录读不到时结果仍然有效，按已有输出判断。
 - 用简体中文回答。`
 }
 
 // UserPrompt starts an investigation of scope; note carries the user's own wording.
-func UserPrompt(scope, note string) string {
-	prompt := fmt.Sprintf("请调查 %s，找出可以回收的空间。", scope)
+func UserPrompt(scope, note string, steps int, reported []Finding) string {
+	prompt := fmt.Sprintf("请调查 %s，找出可以回收的空间。本次最多约 %d 轮工具调用。", scope, steps)
 	if strings.TrimSpace(note) != "" {
 		prompt += "\n用户补充：" + note
 	}
+	if len(reported) != 0 {
+		prompt += "\n\n这是一次继续调查。下面的问题之前已经报告过，不要重复报告，也不要再花步数核实它们；去找其他还没发现的问题，可以从之前没查过的目录入手："
+		for _, finding := range reported {
+			paths := strings.Join(finding.Paths, "、")
+			if len([]rune(paths)) > 160 {
+				paths = string([]rune(paths)[:160]) + "…"
+			}
+			prompt += fmt.Sprintf("\n- %s（%s）", finding.Title, paths)
+		}
+	}
 	return prompt
+}
+
+// Depths map the analysis levels offered in the UI to step budgets.
+var Depths = map[string]int{"standard": 60, "deep": 100, "thorough": 150}
+
+// StepsFor returns the step budget of a depth, defaulting to standard.
+func StepsFor(depth string) int {
+	if steps, ok := Depths[depth]; ok {
+		return steps
+	}
+	return Depths["standard"]
 }

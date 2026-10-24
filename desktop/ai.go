@@ -23,6 +23,7 @@ type investigation struct {
 	cancel   context.CancelFunc
 	consents map[string]chan bool
 	nextID   int
+	runs     int
 }
 
 type AISettingsView struct {
@@ -101,9 +102,12 @@ type InvestigationResult struct {
 	Cancelled bool              `json:"cancelled"`
 }
 
-// StartInvestigation runs the AI over the latest scan. Steps arrive as "ai:event" events,
-// consent requests as "ai:consent", and the end as one "ai:finished" event.
-func (a *App) StartInvestigation(scope, note string) error {
+// StartInvestigation runs the AI over the latest scan with the step budget of depth
+// ("standard", "deep", "thorough"). With continueRun, the model is told what earlier runs
+// already reported and its findings are added to them; otherwise they replace them.
+// Steps arrive as "ai:event" events, consent requests as "ai:consent", and the end as one
+// "ai:finished" event carrying all current findings.
+func (a *App) StartInvestigation(scope, note, depth string, continueRun bool) error {
 	settings, _, err := loadAISettings()
 	if err != nil {
 		return err
@@ -113,6 +117,10 @@ func (a *App) StartInvestigation(scope, note string) error {
 	}
 	a.mu.Lock()
 	report, built, root, volumeUsed := a.report, a.tree, a.root, a.volumeUsed
+	var reported []advisor.Finding
+	if continueRun {
+		reported = append(reported, a.findings...)
+	}
 	a.mu.Unlock()
 	if built == nil {
 		return errors.New("请先完成一次扫描")
@@ -129,28 +137,37 @@ func (a *App) StartInvestigation(scope, note string) error {
 	ctx, cancel := context.WithCancel(a.ctx)
 	a.ai.cancel = cancel
 	a.ai.consents = map[string]chan bool{}
+	a.ai.runs++
+	prefix := ""
+	if continueRun {
+		prefix = "r" + strconv.Itoa(a.ai.runs) + "-"
+	}
 	a.ai.mu.Unlock()
 
+	steps := advisor.StepsFor(depth)
 	env := &advisor.Environment{Root: root, Report: report, Tree: built, VolumeUsed: volumeUsed, Consent: a.askConsent}
 	agent := advisor.Agent{
 		Client:   advisor.NewClient(settings),
 		Tools:    env.Tools(),
-		MaxSteps: 40,
+		MaxSteps: steps,
+		IDPrefix: prefix,
 		Emit:     func(e advisor.Event) { runtime.EventsEmit(a.ctx, "ai:event", e) },
 	}
 	go func() {
-		findings, runErr := agent.Run(ctx, advisor.SystemPrompt(), advisor.UserPrompt(scope, note))
-		result := InvestigationResult{Findings: findings, Cancelled: errors.Is(runErr, context.Canceled)}
+		findings, runErr := agent.Run(ctx, advisor.SystemPrompt(), advisor.UserPrompt(scope, note, steps, reported))
+		result := InvestigationResult{Cancelled: errors.Is(runErr, context.Canceled)}
 		if runErr != nil && !result.Cancelled {
 			result.Error = runErr.Error()
 		}
-		if result.Findings == nil {
-			result.Findings = []advisor.Finding{}
-		}
-		// Each run numbers its findings from f1, and the UI clears its list when a run
-		// starts, so the latest run replaces earlier results.
+		// A continued run adds to the earlier findings (its IDs carry a prefix); a fresh
+		// run replaces them, matching the UI, which clears its list when one starts.
 		a.mu.Lock()
-		a.findings = result.Findings
+		if continueRun {
+			a.findings = append(append([]advisor.Finding{}, reported...), findings...)
+		} else {
+			a.findings = findings
+		}
+		result.Findings = append([]advisor.Finding{}, a.findings...)
 		a.mu.Unlock()
 		a.ai.mu.Lock()
 		a.ai.cancel = nil

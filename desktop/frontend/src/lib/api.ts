@@ -115,6 +115,7 @@ export type AIEvent = {
   tokens?: number
 }
 
+export type InvestigationDepth = 'standard' | 'deep' | 'thorough'
 export type AIConsent = { id: string; path: string; reason: string }
 export type AIFinished = { findings: Finding[]; error: string; cancelled: boolean }
 
@@ -154,7 +155,7 @@ export interface Backend {
   GetAISettings(): Promise<AISettingsView>
   SaveAISettings(input: AISettingsInput): Promise<void>
   TestAI(): Promise<string>
-  StartInvestigation(scope: string, note: string): Promise<void>
+  StartInvestigation(scope: string, note: string, depth: InvestigationDepth, continueRun: boolean): Promise<void>
   StopInvestigation(): Promise<void>
   AnswerConsent(id: string, allow: boolean): Promise<void>
   Findings(): Promise<Finding[]>

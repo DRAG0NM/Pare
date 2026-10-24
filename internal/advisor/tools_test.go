@@ -145,6 +145,20 @@ func TestDiagnosticsRejectUnsafeArguments(t *testing.T) {
 	}
 }
 
+func TestUserPromptForDepthAndContinuation(t *testing.T) {
+	if StepsFor("deep") != 100 || StepsFor("bogus") != 60 {
+		t.Errorf("StepsFor: deep %d, unknown %d", StepsFor("deep"), StepsFor("bogus"))
+	}
+	fresh := UserPrompt(`C:\`, "别动游戏", 60, nil)
+	if !strings.Contains(fresh, "最多约 60 轮") || !strings.Contains(fresh, "别动游戏") || strings.Contains(fresh, "继续调查") {
+		t.Errorf("fresh prompt = %q", fresh)
+	}
+	again := UserPrompt(`C:\`, "", 100, []Finding{{Title: "WSL 虚拟磁盘未稀疏", Paths: []string{`C:\wsl\ext4.vhdx`}}})
+	if !strings.Contains(again, "继续调查") || !strings.Contains(again, "WSL 虚拟磁盘未稀疏") || !strings.Contains(again, `C:\wsl\ext4.vhdx`) {
+		t.Errorf("continuation prompt = %q", again)
+	}
+}
+
 func TestDuplicateDriversGroupsByOriginalName(t *testing.T) {
 	output := `Microsoft PnP 工具
 
@@ -189,7 +203,7 @@ func TestInvestigationWithRealTools(t *testing.T) {
 		{Role: "assistant", ToolCalls: []ToolCall{toolCall("3", "report_finding", `{"title":"更新包残留","summary":"s","cause":"c","bytes":6270000000,"risk":"safe","confidence":"high","evidence":["20 个 299 MB 文件"],"actions":[{"kind":"quarantine","label":"移入隔离区","explain":"可撤回","paths":["C:\\Windows\\SystemTemp\\pkg-00"]}]}`)}},
 		{Role: "assistant", Content: "共发现 1 个问题。"},
 	}}
-	findings, err := Agent{Client: model, Tools: env.Tools()}.Run(context.Background(), SystemPrompt(), UserPrompt(`C:\`, ""))
+	findings, err := Agent{Client: model, Tools: env.Tools()}.Run(context.Background(), SystemPrompt(), UserPrompt(`C:\`, "", 60, nil))
 	if err != nil || len(findings) != 1 || findings[0].Risk != "safe" {
 		t.Fatalf("findings = %+v, %v", findings, err)
 	}

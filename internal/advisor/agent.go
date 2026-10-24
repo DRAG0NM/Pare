@@ -43,6 +43,8 @@ type chatter interface {
 }
 
 type Agent struct {
+	// IDPrefix keeps finding IDs unique when a later run continues an earlier one.
+	IDPrefix string
 	Client   chatter
 	Tools    []Tool
 	MaxSteps int
@@ -164,7 +166,7 @@ func (a Agent) Run(ctx context.Context, system, user string) ([]Finding, error) 
 					result = "参数不是合法的 JSON：" + err.Error()
 				} else {
 					finding.normalize()
-					finding.ID = "f" + strconv.Itoa(len(findings)+1)
+					finding.ID = a.IDPrefix + "f" + strconv.Itoa(len(findings)+1)
 					findings = append(findings, finding)
 					emit(Event{Kind: EventFinding, Step: step, Finding: &finding})
 					result = "已记录 " + finding.ID

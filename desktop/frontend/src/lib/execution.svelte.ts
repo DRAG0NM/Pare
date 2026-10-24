@@ -12,6 +12,17 @@ export const exec = $state({
 })
 
 let initialized = false
+let onRulesDone: (() => void) | undefined
+
+// App registers this to clear the rule selection after a run that included rule items.
+export function setRulesDoneHandler(fn: () => void) {
+  onRulesDone = fn
+}
+
+export const GONE_REASON = 'file no longer exists'
+export function isGone(a: { items: { reason: string }[] }) {
+  return a.items.length > 0 && a.items.every((it) => it.reason === GONE_REASON)
+}
 
 export function initExecution() {
   if (initialized) return
@@ -23,6 +34,20 @@ export function initExecution() {
     exec.report = r
     if (r.error) exec.error = r.error
     exec.phase = 'done'
+    let hadRules = false
+    for (const res of r.results ?? []) {
+      if (res.key === 'rules') {
+        hadRules = true
+        continue
+      }
+      if (res.status !== 'done' && res.status !== 'partial') continue
+      const id = res.key.slice(0, res.key.lastIndexOf(':'))
+      if (!id) continue
+      // A partial result must not downgrade a finding already fully handled.
+      if (!(res.status === 'partial' && inv.handled[id] === 'done')) inv.handled[id] = res.status
+      inv.chosen[id] = -1
+    }
+    if (hadRules) onRulesDone?.()
   })
 }
 
@@ -44,7 +69,7 @@ export async function openConfirm(rulePaths: Iterable<string>) {
     const preview = await backend.PrepareExecution(chosen, [...rulePaths])
     exec.preview = preview
     const accepted: Record<string, boolean> = {}
-    for (const a of preview.actions) accepted[a.key] = a.runnable && (a.kind === 'quarantine' || a.kind === 'template')
+    for (const a of preview.actions) accepted[a.key] = a.runnable && !isGone(a) && (a.kind === 'quarantine' || a.kind === 'template')
     exec.accepted = accepted
     exec.phase = 'confirm'
   } catch (e) {

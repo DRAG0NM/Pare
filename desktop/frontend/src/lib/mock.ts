@@ -230,6 +230,36 @@ const mockFindings: Finding[] = [
       { kind: 'command', label: '重新构建依赖', explain: '让 npm 只保留需要的平台。', bytes: 0, command: 'npm rebuild @lancedb/lancedb' },
     ],
   },
+  {
+    id: 'r2-f1',
+    title: 'Edge 旧版本模型文件 168 MB',
+    summary: 'Edge 的组件目录里留着两个旧版本的设备端模型，当前版本已不再引用。',
+    cause: 'Edge 更新组件后没有清理旧版本目录。',
+    paths: ['C:\\Users\\me\\AppData\\Local\\Microsoft\\Edge\\User Data\\OptGuideOnDeviceModel\\2024.5.1.0'],
+    bytes: 168 * MB,
+    risk: 'rebuildable',
+    confidence: 'medium',
+    regrowth: '会少量再出现，每次组件更新后可能留下一个旧版本。',
+    evidence: ['OptGuideOnDeviceModel 下有 3 个版本目录', '只有最新版本被 Edge 配置引用', '旧版本合计 168 MB'],
+    actions: [
+      { kind: 'quarantine', label: '移走旧版本模型', explain: '保留最新版本，旧版本移入隔离区。', bytes: 168 * MB, paths: ['C:\\Users\\me\\AppData\\Local\\Microsoft\\Edge\\User Data\\OptGuideOnDeviceModel\\2024.5.1.0'] },
+    ],
+  },
+  {
+    id: 'r2-f2',
+    title: 'Temp 下 Go 安装包 75 MB',
+    summary: '用户 Temp 里留着 Go 的安装包，已经安装过，不会再用到。',
+    cause: '安装程序解压后没有删除安装包。',
+    paths: ['C:\\Users\\me\\AppData\\Local\\Temp\\go1.22.3.windows-amd64.msi'],
+    bytes: 75 * MB,
+    risk: 'safe',
+    confidence: 'high',
+    regrowth: '不会，除非再次安装 Go。',
+    evidence: ['go1.22.3.windows-amd64.msi 75 MB', '本机已安装 Go 1.22.3', '没有进程占用'],
+    actions: [
+      { kind: 'quarantine', label: '移入隔离区', explain: '移走安装包，可随时撤回。', bytes: 75 * MB, paths: ['C:\\Users\\me\\AppData\\Local\\Temp\\go1.22.3.windows-amd64.msi'] },
+    ],
+  },
 ]
 
 let aiTimers: ReturnType<typeof setTimeout>[] = []
@@ -443,13 +473,29 @@ export const mockBackend: Backend = {
     if (!aiSettings.hasKey) throw new Error('AI 尚未配置')
     return '连接正常'
   },
-  async StartInvestigation(scope) {
+  async StartInvestigation(scope, _note, _depth, continueRun) {
     if (!aiSettings.hasKey) throw new Error('AI 尚未配置，请先在设置里填写 API Key')
     aiTimers.forEach(clearTimeout)
     aiTimers = []
     aiRunning = true
-    emittedFindings = []
     aiTokens = 0
+    if (continueRun && emittedFindings.length) {
+      aiEmit({ kind: 'thinking', step: 1 })
+      aiAt(900, () => aiEmit({ kind: 'tool', step: 1, tool: 'list_dir', args: j({ path: 'C:\\Users\\me\\AppData\\Local\\Microsoft\\Edge\\User Data' }) }))
+      aiAt(1600, () => aiFinding(3, 1))
+      aiAt(2600, () => {
+        aiEmit({ kind: 'thinking', step: 2 })
+        aiEmit({ kind: 'tool', step: 2, tool: 'list_dir', args: j({ path: 'C:\\Users\\me\\AppData\\Local\\Temp' }) })
+      })
+      aiAt(3300, () => aiFinding(4, 2))
+      aiAt(4200, () => {
+        aiEmit({ kind: 'message', step: 3, text: '又发现 2 个较小的问题，合计约 243 MB。其余位置没有明显浪费。' })
+        aiEmit({ kind: 'done', step: 3 })
+        aiFinish(false)
+      })
+      return
+    }
+    emittedFindings = []
     const dir = scope || root.path
     const envPath = 'C:\\Users\\me\\project\\.env'
     aiEmit({ kind: 'thinking', step: 1 })
