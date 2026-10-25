@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.svg" alt="Pare：Windows 上的 AI 磁碟調查員" width="100%">
+  <img src="docs/images/zh-TW/banner.svg" alt="Pare：Windows 上的 AI 磁碟調查員" width="100%">
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@
 **Pare 派出 AI 調查員，專門追查這類浪費。** 它會讀取掃描結果、開啟需要查看的檔案、交叉比對已安裝的程式與系統狀態，並把每個問題說明清楚：是什麼、為什麼會發生、會不會再次出現，以及可以怎麼處理。在您看過確切的項目或指令並確認之前，磁碟上不會有任何變動；檔案類的清理會先移到隔離區，隨時可以還原。
 
 <p align="center">
-  <img src="docs/images/demo.gif" alt="掃描、AI 深入調查、確認與清理摘要" width="100%">
+  <img src="docs/images/zh-TW/demo.gif" alt="掃描、AI 深入調查、確認與清理摘要" width="100%">
 </p>
 <p align="center"><sub>畫面錄自內建的示範模式，資料僅供示意。</sub></p>
 
@@ -41,12 +41,12 @@
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/overview.png" alt="與樹狀圖連動的目錄樹"><br><sub><b>掃描</b>：目錄樹與樹狀圖連動，無法讀取的位置會另外列出，而不是算成零。</sub></td>
-    <td width="50%"><img src="docs/images/investigate.png" alt="包含原因、佐證與處理選項的 AI 發現"><br><sub><b>AI 深入調查</b>：每項發現的原因、佐證、是否會再次增長，以及處理選項。</sub></td>
+    <td width="50%"><img src="docs/images/zh-TW/overview.png" alt="與樹狀圖連動的目錄樹"><br><sub><b>掃描</b>：目錄樹與樹狀圖連動，無法讀取的位置會另外列出，而不是算成零。</sub></td>
+    <td width="50%"><img src="docs/images/zh-TW/investigate.png" alt="包含原因、佐證與處理選項的 AI 發現"><br><sub><b>AI 深入調查</b>：每項發現的原因、佐證、是否會再次增長，以及處理選項。</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/confirm.png" alt="列出確切指令與項目的確認對話方塊"><br><sub><b>確認</b>：確切的項目與指令、警告，以及是否需要系統管理員權限。</sub></td>
-    <td width="50%"><img src="docs/images/summary.png" alt="包含實測可用空間與預防步驟的清理摘要"><br><sub><b>摘要</b>：實測的可用空間、仍留在隔離區的容量，以及一鍵預防。</sub></td>
+    <td width="50%"><img src="docs/images/zh-TW/confirm.png" alt="列出確切指令與項目的確認對話方塊"><br><sub><b>確認</b>：確切的項目與指令、警告，以及是否需要系統管理員權限。</sub></td>
+    <td width="50%"><img src="docs/images/zh-TW/summary.png" alt="包含實測可用空間與預防步驟的清理摘要"><br><sub><b>摘要</b>：實測的可用空間、仍留在隔離區的容量，以及一鍵預防。</sub></td>
   </tr>
 </table>
 

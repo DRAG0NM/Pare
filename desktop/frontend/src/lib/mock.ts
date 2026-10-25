@@ -1,5 +1,6 @@
 // A deterministic fake disk for running the UI in a browser. Never used in the desktop app.
 import type { ActionResult, BatchSummary, HistoryEntry, Execution, ExecutionPreview, PreparedAction, AIEvent, AISettingsView, Backend, Finding, CandidateGroup, CandidateItem, CandidateView, Drive, Evidence, NodeTree, NodeView, Progress, ScanSummary } from './api'
+import { mt } from './mockText'
 
 type FakeNode = { name: string; kind: string; size: number; children: FakeNode[]; incomplete?: boolean }
 
@@ -84,7 +85,7 @@ function trimmed(children: FakeNode[], limit: number): NodeView[] {
   if (rest.length) {
     const total = rest.reduce((sum, child) => sum + child.total, 0)
     shown.push({
-      path: '', name: `其他 ${rest.length} 项`, kind: 'others', logicalSize: total, allocationSize: total,
+      path: '', name: mt('tree.others', { n: rest.length }), kind: 'others', logicalSize: total, allocationSize: total,
       files: rest.reduce((sum, child) => sum + child.files, 0), directories: 0, incomplete: false, hasChildren: false, others: rest.length,
     })
   }
@@ -166,104 +167,111 @@ export const mockEvents = {
 
 let timer: ReturnType<typeof setInterval> | undefined
 
-const providers = [
+const providers = () => [
   { id: 'deepseek', name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', defaultModel: 'deepseek-chat' },
-  { id: 'qwen', name: '通义千问', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', defaultModel: 'qwen-plus' },
+  { id: 'qwen', name: mt('prov.qwen'), baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', defaultModel: 'qwen-plus' },
   { id: 'kimi', name: 'Kimi', baseUrl: 'https://api.moonshot.cn/v1', defaultModel: 'moonshot-v1-32k' },
-  { id: 'zhipu', name: '智谱', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', defaultModel: 'glm-4-flash' },
+  { id: 'zhipu', name: mt('prov.zhipu'), baseUrl: 'https://open.bigmodel.cn/api/paas/v4', defaultModel: 'glm-4-flash' },
   { id: 'openai', name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', defaultModel: 'gpt-4o-mini' },
-  { id: 'custom', name: '自定义', baseUrl: '', defaultModel: '' },
+  { id: 'custom', name: mt('prov.custom'), baseUrl: '', defaultModel: '' },
 ]
-const aiSettings: AISettingsView = { provider: 'deepseek', baseUrl: providers[0].baseUrl, model: providers[0].defaultModel, hasKey: false, providers }
+const aiSettings: AISettingsView = { provider: 'deepseek', baseUrl: providers()[0].baseUrl, model: providers()[0].defaultModel, hasKey: false, providers: [] }
 
 const lancedbPaths = ['darwin-arm64', 'darwin-x64', 'linux-arm64-gnu', 'linux-arm64-musl', 'linux-x64-gnu', 'linux-x64-musl', 'win32-arm64-msvc'].map(
   (p) => `D:\\Projects\\pare\\node_modules\\@lancedb\\lancedb-${p}`,
 )
 
-const mockFindings: Finding[] = [
+function buildFindings(): Finding[] {
+  return [
   {
     id: 'f1',
-    title: 'WSL 虚拟磁盘 11.1 GB，其中约 4.3 GB 是死空间',
-    summary: 'Ubuntu-24.04 的 ext4.vhdx 占 11.1 GB，里面实际数据只有约 6.8 GB，其余是删除文件后没有回收的空间。',
-    cause: '.wslconfig 里写了 sparseVhd=true，但当前 WSL 版本不识别这个键，所以虚拟磁盘从不自动收缩。',
+    title: mt('f1.title'),
+    summary: mt('f1.summary'),
+    cause: mt('f1.cause'),
     paths: ['C:\\Users\\me\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu24.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx', 'C:\\Users\\me\\.wslconfig'],
     bytes: 11.08 * GB,
     risk: 'careful',
     confidence: 'high',
-    regrowth: '会。虚拟磁盘只增不减，之后在 WSL 里写入删除大量文件还会再次膨胀，需要定期压缩或启用稀疏模式。',
-    evidence: ['ext4.vhdx 文件大小 11.08 GB', 'WSL 内 df 显示已用 6.8 GB', '.wslconfig 中存在 sparseVhd=true', 'wsl --version 为 1.2.5，低于支持稀疏盘的版本'],
+    regrowth: mt('f1.regrowth'),
+    evidence: [mt('f1.ev1'), mt('f1.ev2'), mt('f1.ev3'), mt('f1.ev4')],
     actions: [
-      { kind: 'template', label: '把 Ubuntu-24.04 迁移到 D 盘', explain: '导出并导入到 D 盘，C 盘立刻腾出空间，导入时顺便压缩。', bytes: 11.08 * GB, template: 'wsl_move', params: { distro: 'Ubuntu-24.04', target: 'D:\\WSL\\Ubuntu-24.04' } },
-      { kind: 'template', label: '开启稀疏磁盘', explain: '对该发行版启用 sparse，之后删除的文件会自动回收。', bytes: 4.3 * GB, template: 'wsl_set_sparse', params: { distro: 'Ubuntu-24.04' } },
-      { kind: 'config', label: '修正 .wslconfig', explain: '把无效的 sparseVhd 键移到受支持的位置。', bytes: 0, paths: ['C:\\Users\\me\\.wslconfig'] },
+      { kind: 'template', label: mt('f1.a1.label'), explain: mt('f1.a1.explain'), bytes: 11.08 * GB, template: 'wsl_move', params: { distro: 'Ubuntu-24.04', target: 'D:\\WSL\\Ubuntu-24.04' } },
+      { kind: 'template', label: mt('f1.a2.label'), explain: mt('f1.a2.explain'), bytes: 4.3 * GB, template: 'wsl_set_sparse', params: { distro: 'Ubuntu-24.04' } },
+      { kind: 'config', label: mt('f1.a3.label'), explain: mt('f1.a3.explain'), bytes: 0, paths: ['C:\\Users\\me\\.wslconfig'] },
     ],
-    prevention: [{ kind: 'template', label: '开启稀疏磁盘，之后自动回收', explain: '删除的文件会自动还给 Windows。', bytes: 0, template: 'wsl_set_sparse', params: { distro: 'Ubuntu-24.04' } }],
+    prevention: [{ kind: 'template', label: mt('f1.p1.label'), explain: mt('f1.p1.explain'), bytes: 0, template: 'wsl_set_sparse', params: { distro: 'Ubuntu-24.04' } }],
   },
   {
     id: 'f2',
-    title: '罗技 G HUB 更新包残留 35.8 GB',
-    summary: '系统临时目录里堆了 14 个 G HUB 下载的更新包，都已安装过，不会再被使用。',
-    cause: 'G HUB 的自动更新下载后不清理安装包。',
+    title: mt('f2.title'),
+    summary: mt('f2.summary'),
+    cause: mt('f2.cause'),
     paths: ['C:\\Windows\\SystemTemp'],
     bytes: 35.8 * GB,
     risk: 'safe',
     confidence: 'high',
-    regrowth: '会。只要 G HUB 自动更新开着，每次更新都会留下新的安装包。',
-    evidence: ['SystemTemp 下 14 个 lghub_*.exe / .zip', '文件修改时间集中在最近半年', '对应版本已安装，没有进程占用'],
+    regrowth: mt('f2.regrowth'),
+    evidence: [mt('f2.ev1'), mt('f2.ev2'), mt('f2.ev3')],
     actions: [
-      { kind: 'quarantine', label: '移入隔离区', explain: '整个目录内容移走，可随时撤回。', bytes: 35.8 * GB, paths: ['C:\\Windows\\SystemTemp'] },
-      { kind: 'manual', label: '在 G HUB 设置里关闭自动更新', explain: '避免之后再次堆积。', bytes: 0 },
+      { kind: 'quarantine', label: mt('f2.a1.label'), explain: mt('f2.a1.explain'), bytes: 35.8 * GB, paths: ['C:\\Windows\\SystemTemp'] },
+      { kind: 'manual', label: mt('f2.a2.label'), explain: mt('f2.a2.explain'), bytes: 0 },
     ],
-    prevention: [{ kind: 'manual', label: '关闭 G HUB 自动更新', explain: '打开 G HUB → 设置 → 关闭“自动更新”。', bytes: 0 }],
+    prevention: [{ kind: 'manual', label: mt('f2.p1.label'), explain: mt('f2.p1.explain'), bytes: 0 }],
   },
   {
     id: 'f3',
-    title: 'lancedb 装了 8 个平台的原生二进制，浪费 767 MB',
-    summary: 'node_modules 里 @lancedb 下有 8 个平台的原生包，本机只会用到 win32-x64。',
-    cause: 'npm 安装时把所有可选平台依赖一并下载。',
+    title: mt('f3.title'),
+    summary: mt('f3.summary'),
+    cause: mt('f3.cause'),
     paths: lancedbPaths,
     bytes: 767 * MB,
     risk: 'rebuildable',
     confidence: 'medium',
-    regrowth: '重新执行 npm install 可能再次装回，可用 --omit=optional 避免。',
-    evidence: ['node_modules/@lancedb 下共 8 个平台目录', '当前系统为 win32-x64', '其余 7 个目录合计 767 MB'],
+    regrowth: mt('f3.regrowth'),
+    evidence: [mt('f3.ev1'), mt('f3.ev2'), mt('f3.ev3')],
     actions: [
-      { kind: 'quarantine', label: '移走 7 个其他平台的包', explain: '保留 win32-x64，其余移入隔离区。', bytes: 767 * MB, paths: lancedbPaths },
-      { kind: 'command', label: '重新构建依赖', explain: '让 npm 只保留需要的平台。', bytes: 0, command: 'npm rebuild @lancedb/lancedb' },
+      { kind: 'quarantine', label: mt('f3.a1.label'), explain: mt('f3.a1.explain'), bytes: 767 * MB, paths: lancedbPaths },
+      { kind: 'command', label: mt('f3.a2.label'), explain: mt('f3.a2.explain'), bytes: 0, command: 'npm rebuild @lancedb/lancedb' },
     ],
-    prevention: [{ kind: 'command', label: '以后不装可选平台包', explain: '让 npm 默认跳过可选依赖，删除这项设置即可恢复。', bytes: 0, command: 'npm config set omit optional' }],
+    prevention: [{ kind: 'command', label: mt('f3.p1.label'), explain: mt('f3.p1.explain'), bytes: 0, command: 'npm config set omit optional' }],
   },
   {
     id: 'r2-f1',
-    title: 'Edge 旧版本模型文件 168 MB',
-    summary: 'Edge 的组件目录里留着两个旧版本的设备端模型，当前版本已不再引用。',
-    cause: 'Edge 更新组件后没有清理旧版本目录。',
+    title: mt('r2f1.title'),
+    summary: mt('r2f1.summary'),
+    cause: mt('r2f1.cause'),
     paths: ['C:\\Users\\me\\AppData\\Local\\Microsoft\\Edge\\User Data\\OptGuideOnDeviceModel\\2024.5.1.0'],
     bytes: 168 * MB,
     risk: 'rebuildable',
     confidence: 'medium',
-    regrowth: '会少量再出现，每次组件更新后可能留下一个旧版本。',
-    evidence: ['OptGuideOnDeviceModel 下有 3 个版本目录', '只有最新版本被 Edge 配置引用', '旧版本合计 168 MB'],
+    regrowth: mt('r2f1.regrowth'),
+    evidence: [mt('r2f1.ev1'), mt('r2f1.ev2'), mt('r2f1.ev3')],
     actions: [
-      { kind: 'quarantine', label: '移走旧版本模型', explain: '保留最新版本，旧版本移入隔离区。', bytes: 168 * MB, paths: ['C:\\Users\\me\\AppData\\Local\\Microsoft\\Edge\\User Data\\OptGuideOnDeviceModel\\2024.5.1.0'] },
+      { kind: 'quarantine', label: mt('r2f1.a1.label'), explain: mt('r2f1.a1.explain'), bytes: 168 * MB, paths: ['C:\\Users\\me\\AppData\\Local\\Microsoft\\Edge\\User Data\\OptGuideOnDeviceModel\\2024.5.1.0'] },
     ],
   },
   {
     id: 'r2-f2',
-    title: 'Temp 下 Go 安装包 75 MB',
-    summary: '用户 Temp 里留着 Go 的安装包，已经安装过，不会再用到。',
-    cause: '安装程序解压后没有删除安装包。',
+    title: mt('r2f2.title'),
+    summary: mt('r2f2.summary'),
+    cause: mt('r2f2.cause'),
     paths: ['C:\\Users\\me\\AppData\\Local\\Temp\\go1.22.3.windows-amd64.msi'],
     bytes: 75 * MB,
     risk: 'safe',
     confidence: 'high',
-    regrowth: '不会，除非再次安装 Go。',
-    evidence: ['go1.22.3.windows-amd64.msi 75 MB', '本机已安装 Go 1.22.3', '没有进程占用'],
+    regrowth: mt('r2f2.regrowth'),
+    evidence: [mt('r2f2.ev1'), mt('r2f2.ev2'), mt('r2f2.ev3')],
     actions: [
-      { kind: 'quarantine', label: '移入隔离区', explain: '移走安装包，可随时撤回。', bytes: 75 * MB, paths: ['C:\\Users\\me\\AppData\\Local\\Temp\\go1.22.3.windows-amd64.msi'] },
+      { kind: 'quarantine', label: mt('r2f2.a1.label'), explain: mt('r2f2.a1.explain'), bytes: 75 * MB, paths: ['C:\\Users\\me\\AppData\\Local\\Temp\\go1.22.3.windows-amd64.msi'] },
     ],
   },
-]
+  ]
+}
+// Rebuilt whenever demo data is produced so the text follows the current interface language.
+let mockFindings: Finding[] = buildFindings()
+function refreshFindings() {
+  mockFindings = buildFindings()
+}
 
 let aiTimers: ReturnType<typeof setTimeout>[] = []
 let aiRunning = false
@@ -300,8 +308,9 @@ const mockBatches: BatchSummary[] = [
 let execRunning = false
 let mockFree = 81.4 * GB
 const mockHistory: HistoryEntry[] = [
-  { time: new Date(Date.now() - 5 * DAY).toISOString(), kind: 'clean', volume: 'C:\\', freedBytes: 0, quarantinedBytes: 1.4 * GB, items: 2, actions: [{ findingTitle: '常规缓存（规则）', label: '移走 36 个缓存文件', kind: 'quarantine', status: 'done', bytes: 1.4 * GB }] },
+  { time: new Date(Date.now() - 5 * DAY).toISOString(), kind: 'clean', volume: 'C:\\', freedBytes: 0, quarantinedBytes: 1.4 * GB, items: 2, actions: [] },
 ]
+const seedHistory = mockHistory[0] // its action text is built in ListHistory so it follows the language
 
 function mockExecution(manifest: string, state: string): Execution {
   const b = mockBatches.find((x) => x.manifest === manifest)
@@ -319,22 +328,22 @@ function prepareAction(f: Finding, index: number, prevent = false): PreparedActi
     const paths = a.paths ?? []
     base.items = paths.map((path) => {
       const prot = path.startsWith('C:\\Windows\\System32')
-      return { path, kind: 'directory' as const, bytes: a.bytes / Math.max(1, paths.length), executable: !prot, reason: prot ? '受保护的位置：Windows 系统目录' : '' }
+      return { path, kind: 'directory' as const, bytes: a.bytes / Math.max(1, paths.length), executable: !prot, reason: prot ? mt('prep.protected') : '' }
     })
     base.needsAdmin = paths.some((p) => p.startsWith('C:\\Windows'))
     base.runnable = base.items.some((i) => i.executable)
-    if (!base.runnable) base.error = '没有可以移走的项目'
+    if (!base.runnable) base.error = mt('prep.nothing')
   } else if (a.kind === 'template') {
     if (a.template === 'wsl_move') {
       base.steps = ['wsl.exe --terminate Ubuntu-24.04', 'wsl.exe --manage Ubuntu-24.04 --move D:\\WSL\\Ubuntu-24.04']
-      base.warnings = ['执行期间 Ubuntu-24.04 会被关闭，正在运行的 WSL 程序会中断', '迁移完成后无法自动撤回']
+      base.warnings = [mt('prep.wslMove.w1'), mt('prep.wslMove.w2')]
     } else {
       base.steps = ['wsl.exe --terminate Ubuntu-24.04', 'wsl.exe --manage Ubuntu-24.04 --set-sparse true']
-      base.warnings = ['执行期间 Ubuntu-24.04 会被关闭']
+      base.warnings = [mt('prep.sparse.w1')]
     }
   } else if (a.kind === 'command') {
     base.steps = [a.command ?? '']
-    base.warnings = ['这是 AI 写的命令，不在 Pare 的受支持动作里，Pare 无法检查它会做什么', '请逐字读懂后再执行']
+    base.warnings = [mt('prep.cmd.w1'), mt('prep.cmd.w2')]
   } else {
     base.runnable = false
   }
@@ -343,6 +352,7 @@ function prepareAction(f: Finding, index: number, prevent = false): PreparedActi
 
 export const mockBackend: Backend = {
   async PrepareExecution(chosen, rulePaths) {
+    refreshFindings()
     await new Promise((resolve) => setTimeout(resolve, 700))
     const actions: PreparedAction[] = []
     for (const c of chosen) {
@@ -352,7 +362,7 @@ export const mockBackend: Backend = {
     if (rulePaths.length) {
       const per = 38 * MB
       actions.push({
-        key: 'rules', findingTitle: '常规缓存（规则）', kind: 'quarantine', label: `移走 ${rulePaths.length} 个缓存文件`, explain: '按规则挑选的临时文件和包缓存，移入隔离区。',
+        key: 'rules', findingTitle: mt('rules.title'), kind: 'quarantine', label: mt('rules.label', { n: rulePaths.length }), explain: mt('rules.explain'),
         bytes: per * rulePaths.length, items: rulePaths.slice(0, 200).map((path) => ({ path, kind: 'file' as const, bytes: per, executable: true, reason: '' })), steps: [], warnings: [], needsAdmin: false, runnable: true, error: '',
       })
     }
@@ -361,8 +371,9 @@ export const mockBackend: Backend = {
     return preview
   },
   async Execute(accepted) {
-    if (!lastPreview.length) throw new Error('没有待执行的方案，请重新确认')
-    if (execRunning) throw new Error('已有操作在执行')
+    refreshFindings()
+    if (!lastPreview.length) throw new Error(mt('exec.noPlan'))
+    if (execRunning) throw new Error(mt('exec.busy'))
     execRunning = true
     const acts = lastPreview.filter((a) => accepted.includes(a.key))
     const results: ActionResult[] = []
@@ -374,8 +385,8 @@ export const mockBackend: Backend = {
         const partial = a.kind === 'quarantine' && a.items.length > 3
         const r: ActionResult = {
           ...info, status: partial ? 'partial' : 'done', bytes: partial ? a.bytes * 0.9 : a.bytes,
-          detail: a.kind === 'quarantine' ? (partial ? `已移走 ${a.items.length - 1} 项，1 项被占用` : `已移走 ${a.items.length} 项`) : '已完成',
-          output: a.steps.length ? a.steps.map((s) => `> ${s}\n操作成功完成。`).join('\n') : '',
+          detail: a.kind === 'quarantine' ? (partial ? mt('exec.movedPartial', { n: a.items.length - 1 }) : mt('exec.moved', { n: a.items.length })) : mt('exec.done'),
+          output: a.steps.length ? a.steps.map((s) => `> ${s}\n${mt('exec.stepOk')}`).join('\n') : '',
         }
         results.push(r)
         mockEvents.emit('exec:progress', r)
@@ -407,7 +418,7 @@ export const mockBackend: Backend = {
   },
   async UndoBatch(manifest) {
     const b = mockBatches.find((x) => x.manifest === manifest)
-    if (!b) throw new Error('找不到这批隔离记录')
+    if (!b) throw new Error(mt('exec.noBatch'))
     const ex = mockExecution(manifest, 'restored')
     const conflict = ex.items.length > 2
     if (conflict) ex.items[0].state = 'conflict'
@@ -417,7 +428,7 @@ export const mockBackend: Backend = {
   },
   async PurgeBatch(manifest) {
     const b = mockBatches.find((x) => x.manifest === manifest)
-    if (!b) throw new Error('找不到这批隔离记录')
+    if (!b) throw new Error(mt('exec.noBatch'))
     const freed = b.quarantinedBytes
     const ex = mockExecution(manifest, 'purged')
     b.purged += b.quarantined
@@ -436,7 +447,7 @@ export const mockBackend: Backend = {
     window.open('https://github.com/DRAG0NM/Pare/issues/new', '_blank')
   },
   async ListHistory() {
-    return mockHistory.map((h) => ({ ...h }))
+    return mockHistory.map((h) => (h === seedHistory ? { ...h, actions: [{ findingTitle: mt('rules.title'), label: mt('rules.label', { n: 36 }), kind: 'quarantine', status: 'done', bytes: 1.4 * GB }] } : { ...h }))
   },
   async Elevated() {
     return false
@@ -490,7 +501,7 @@ export const mockBackend: Backend = {
     return mockCandidates()
   },
   async GetAISettings() {
-    return { ...aiSettings }
+    return { ...aiSettings, providers: providers() }
   },
   async SaveAISettings(input) {
     aiSettings.provider = input.provider
@@ -501,11 +512,12 @@ export const mockBackend: Backend = {
   },
   async TestAI() {
     await new Promise((resolve) => setTimeout(resolve, 500))
-    if (!aiSettings.hasKey) throw new Error('AI 尚未配置')
-    return '连接正常'
+    if (!aiSettings.hasKey) throw new Error(mt('ai.notConfigured'))
+    return mt('ai.connOk')
   },
   async StartInvestigation(scope, _note, _depth, continueRun) {
-    if (!aiSettings.hasKey) throw new Error('AI 尚未配置，请先在设置里填写 API Key')
+    if (!aiSettings.hasKey) throw new Error(mt('ai.needKey'))
+    refreshFindings()
     aiTimers.forEach(clearTimeout)
     aiTimers = []
     aiRunning = true
@@ -520,7 +532,7 @@ export const mockBackend: Backend = {
       })
       aiAt(3300, () => aiFinding(4, 2))
       aiAt(4200, () => {
-        aiEmit({ kind: 'message', step: 3, text: '又发现 2 个较小的问题，合计约 243 MB。其余位置没有明显浪费。' })
+        aiEmit({ kind: 'message', step: 3, text: mt('ai.more') })
         aiEmit({ kind: 'done', step: 3 })
         aiFinish(false)
       })
@@ -531,10 +543,10 @@ export const mockBackend: Backend = {
     const envPath = 'C:\\Users\\me\\project\\.env'
     aiEmit({ kind: 'thinking', step: 1 })
     aiAt(800, () => aiEmit({ kind: 'tool', step: 1, tool: 'scan_overview', args: j({ path: dir, depth: 2 }) }))
-    aiAt(1300, () => aiEmit({ kind: 'result', step: 1, tool: 'scan_overview', text: `${dir} 共 1.2 TB，最大的子目录：Steam 412 GB、Users 233 GB、Projects 31 GB。` }))
+    aiAt(1300, () => aiEmit({ kind: 'result', step: 1, tool: 'scan_overview', text: mt('ai.overview', { dir }) }))
     aiAt(1800, () => aiEmit({ kind: 'thinking', step: 2 }))
     aiAt(2500, () => aiEmit({ kind: 'tool', step: 2, tool: 'list_dir', args: j({ path: 'C:\\Users\\me', limit: 20 }) }))
-    aiAt(3000, () => aiEmit({ kind: 'result', step: 2, tool: 'list_dir', text: 'AppData 190 GB\nProjects 31 GB\n.wslconfig 112 B\n.env 0.3 KB\n……' }))
+    aiAt(3000, () => aiEmit({ kind: 'result', step: 2, tool: 'list_dir', text: mt('ai.listHome') }))
     aiAt(3400, () => aiEmit({ kind: 'thinking', step: 3 }))
     aiAt(4000, () => aiEmit({ kind: 'tool', step: 3, tool: 'run_diagnostic', args: j({ name: 'wsl_disk_usage' }) }))
     aiAt(4600, () => aiEmit({ kind: 'result', step: 3, tool: 'run_diagnostic', text: 'Ubuntu-24.04: vhdx 11.08 GB, used 6.8 GB, sparse=false\nwsl 1.2.5' }))
@@ -546,13 +558,13 @@ export const mockBackend: Backend = {
     aiAt(5800, () => {
       aiEmit({ kind: 'thinking', step: 5 })
       aiEmit({ kind: 'tool', step: 5, tool: 'file_head', args: j({ path: envPath, bytes: 500 }) })
-      mockEvents.emit('ai:consent', { id: 'consent-1', path: envPath, reason: '读取文本内容' })
+      mockEvents.emit('ai:consent', { id: 'consent-1', path: envPath, reason: mt('ai.consentReason') })
       new Promise<boolean>((resolve) => (consentResolve = resolve)).then((allow) => {
         if (!aiRunning) return
-        aiEmit({ kind: 'result', step: 5, tool: 'file_head', text: allow ? 'NODE_ENV=development\n（内容已读取，与清理无关）' : '用户拒绝读取，仅有文件名和大小' })
+        aiEmit({ kind: 'result', step: 5, tool: 'file_head', text: allow ? mt('ai.envAllowed') : mt('ai.envDenied') })
         aiAt(1200, () => {
           aiEmit({ kind: 'tool', step: 6, tool: 'list_dir', args: j({ path: 'C:\\Windows\\SystemTemp' }) })
-          aiEmit({ kind: 'result', step: 6, tool: 'list_dir', text: 'lghub_installer_2024.1.exe 2.4 GB\nlghub_update_2024.2.zip 2.6 GB\n……（共 14 项）' })
+          aiEmit({ kind: 'result', step: 6, tool: 'list_dir', text: mt('ai.listSysTemp') })
           aiFinding(1, 6)
         })
         aiAt(2400, () => {
@@ -561,7 +573,7 @@ export const mockBackend: Backend = {
           aiFinding(2, 7)
         })
         aiAt(3600, () => {
-          aiEmit({ kind: 'message', step: 8, text: '共发现 3 个问题，合计可回收约 47.7 GB。其中罗技更新包最大且最安全；WSL 虚拟磁盘建议先迁移，再开启稀疏模式。' })
+          aiEmit({ kind: 'message', step: 8, text: mt('ai.final') })
           aiEmit({ kind: 'done', step: 8 })
           aiFinish(false)
         })

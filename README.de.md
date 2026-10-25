@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.svg" alt="Pare — Ein KI-Ermittler für Windows-Datenträger" width="100%">
+  <img src="docs/images/de/banner.svg" alt="Pare — Ein KI-Ermittler für Windows-Datenträger" width="100%">
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@ Handelsübliche Cleaner räumen die Caches auf, die jeder hat. Der Speicherplatz
 **Pare schickt einen KI-Ermittler hinter genau diese Art von Verschwendung her.** Er liest den Scan, öffnet die Dateien, die er braucht, gleicht installierte Programme und den Systemzustand ab und erklärt jedes Problem: was es ist, warum es entstanden ist, ob es wiederkommt und was Sie dagegen tun können. Auf dem Datenträger ändert sich nichts, bevor Sie die genauen Elemente oder Befehle gesehen und bestätigt haben; Datei-Bereinigungen landen in einer Quarantäne, die sich rückgängig machen lässt.
 
 <p align="center">
-  <img src="docs/images/demo.gif" alt="Scan, KI-Untersuchung, Bestätigung und Zusammenfassung der Bereinigung" width="100%">
+  <img src="docs/images/de/demo.gif" alt="Scan, KI-Untersuchung, Bestätigung und Zusammenfassung der Bereinigung" width="100%">
 </p>
 <p align="center"><sub>Bildschirme aus dem integrierten Demomodus aufgenommen; die Daten dienen nur der Veranschaulichung.</sub></p>
 
@@ -41,12 +41,12 @@ Handelsübliche Cleaner räumen die Caches auf, die jeder hat. Der Speicherplatz
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/overview.png" alt="Verzeichnisbaum, verknüpft mit einer Treemap"><br><sub><b>Scan</b> — Verzeichnisbaum und Treemap; nicht lesbare Orte werden aufgelistet, statt als null gezählt zu werden.</sub></td>
-    <td width="50%"><img src="docs/images/investigate.png" alt="KI-Befunde mit Ursache, Belegen und Optionen"><br><sub><b>KI-Tiefenanalyse</b> — jeder Befund mit Ursache, Belegen, Nachwachsen und Optionen.</sub></td>
+    <td width="50%"><img src="docs/images/de/overview.png" alt="Verzeichnisbaum, verknüpft mit einer Treemap"><br><sub><b>Scan</b> — Verzeichnisbaum und Treemap; nicht lesbare Orte werden aufgelistet, statt als null gezählt zu werden.</sub></td>
+    <td width="50%"><img src="docs/images/de/investigate.png" alt="KI-Befunde mit Ursache, Belegen und Optionen"><br><sub><b>KI-Tiefenanalyse</b> — jeder Befund mit Ursache, Belegen, Nachwachsen und Optionen.</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/confirm.png" alt="Bestätigungsdialog mit den genauen Befehlen und Elementen"><br><sub><b>Bestätigen</b> — die genauen Elemente und Befehle, Warnungen und erforderliche Administratorrechte.</sub></td>
-    <td width="50%"><img src="docs/images/summary.png" alt="Zusammenfassung der Bereinigung mit gemessenem freiem Speicherplatz und Vorbeugungsschritten"><br><sub><b>Zusammenfassung</b> — gemessener freier Speicherplatz, was noch in der Quarantäne liegt, und Vorbeugung per Klick.</sub></td>
+    <td width="50%"><img src="docs/images/de/confirm.png" alt="Bestätigungsdialog mit den genauen Befehlen und Elementen"><br><sub><b>Bestätigen</b> — die genauen Elemente und Befehle, Warnungen und erforderliche Administratorrechte.</sub></td>
+    <td width="50%"><img src="docs/images/de/summary.png" alt="Zusammenfassung der Bereinigung mit gemessenem freiem Speicherplatz und Vorbeugungsschritten"><br><sub><b>Zusammenfassung</b> — gemessener freier Speicherplatz, was noch in der Quarantäne liegt, und Vorbeugung per Klick.</sub></td>
   </tr>
 </table>
 

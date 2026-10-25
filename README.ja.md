@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.svg" alt="Pare — Windows 向け AI ディスク調査員" width="100%">
+  <img src="docs/images/ja/banner.svg" alt="Pare — Windows 向け AI ディスク調査員" width="100%">
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@
 **Pare は、そうした無駄の調査に AI の調査員を送り込みます。** スキャン結果を読み、必要なファイルを開き、インストール済みのプログラムやシステムの状態と照合して、それぞれの問題を説明します。何であるか、なぜ起きたか、再発するか、どう対処できるかです。具体的な項目やコマンドを確認して承認するまで、ディスクには何も変更を加えません。ファイルのクリーンアップは、元に戻せる隔離フォルダーへ移動されます。
 
 <p align="center">
-  <img src="docs/images/demo.gif" alt="スキャン、AI による調査、確認、クリーンアップの概要" width="100%">
+  <img src="docs/images/ja/demo.gif" alt="スキャン、AI による調査、確認、クリーンアップの概要" width="100%">
 </p>
 <p align="center"><sub>画面は内蔵のデモモードで録画したものです。データは説明用です。</sub></p>
 
@@ -41,12 +41,12 @@
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/overview.png" alt="ツリーマップと連動するディレクトリツリー"><br><sub><b>スキャン</b> — ディレクトリツリーとツリーマップ。読み取れない場所は 0 として数えず、一覧に表示します。</sub></td>
-    <td width="50%"><img src="docs/images/investigate.png" alt="原因、根拠、選択肢を示す AI の発見"><br><sub><b>AI による詳細調査</b> — 各発見の原因、根拠、再増加の有無、選択肢。</sub></td>
+    <td width="50%"><img src="docs/images/ja/overview.png" alt="ツリーマップと連動するディレクトリツリー"><br><sub><b>スキャン</b> — ディレクトリツリーとツリーマップ。読み取れない場所は 0 として数えず、一覧に表示します。</sub></td>
+    <td width="50%"><img src="docs/images/ja/investigate.png" alt="原因、根拠、選択肢を示す AI の発見"><br><sub><b>AI による詳細調査</b> — 各発見の原因、根拠、再増加の有無、選択肢。</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/confirm.png" alt="実行するコマンドと項目を正確に示す確認ダイアログ"><br><sub><b>確認</b> — 正確な項目とコマンド、警告、管理者権限が必要かどうか。</sub></td>
-    <td width="50%"><img src="docs/images/summary.png" alt="実測の空き容量と再発防止の手順を示すクリーンアップの概要"><br><sub><b>概要</b> — 実測の空き容量、隔離フォルダーに残っている容量、ワンクリックの再発防止。</sub></td>
+    <td width="50%"><img src="docs/images/ja/confirm.png" alt="実行するコマンドと項目を正確に示す確認ダイアログ"><br><sub><b>確認</b> — 正確な項目とコマンド、警告、管理者権限が必要かどうか。</sub></td>
+    <td width="50%"><img src="docs/images/ja/summary.png" alt="実測の空き容量と再発防止の手順を示すクリーンアップの概要"><br><sub><b>概要</b> — 実測の空き容量、隔離フォルダーに残っている容量、ワンクリックの再発防止。</sub></td>
   </tr>
 </table>
 

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.svg" alt="Pare：Windows 上的 AI 磁盘调查员" width="100%">
+  <img src="docs/images/zh-CN/banner.svg" alt="Pare：Windows 上的 AI 磁盘调查员" width="100%">
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@
 **Pare 让 AI 去调查这类浪费。** 它读扫描结果，打开需要辨认的文件，核对已安装的软件和系统状态，然后把每个问题讲清楚：是什么、为什么会出现、会不会再长出来、可以怎么处理。你看过具体的文件或命令并确认之前，磁盘上什么都不会改动；文件类的清理先移入隔离区，随时可以撤回。
 
 <p align="center">
-  <img src="docs/images/demo.gif" alt="扫描、AI 深挖、确认执行和清理统计" width="100%">
+  <img src="docs/images/zh-CN/demo.gif" alt="扫描、AI 深挖、确认执行和清理统计" width="100%">
 </p>
 <p align="center"><sub>画面来自内置的演示模式，数据仅作示意。</sub></p>
 
@@ -41,12 +41,12 @@
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/overview.png" alt="目录树与 treemap 联动"><br><sub><b>扫描</b>：目录树和 treemap 联动，读不到的位置单独列出，不会算成 0。</sub></td>
-    <td width="50%"><img src="docs/images/investigate.png" alt="AI 发现：原因、证据和处理方案"><br><sub><b>AI 深挖</b>：每条发现的原因、证据、会不会复发和可选方案。</sub></td>
+    <td width="50%"><img src="docs/images/zh-CN/overview.png" alt="目录树与 treemap 联动"><br><sub><b>扫描</b>：目录树和 treemap 联动，读不到的位置单独列出，不会算成 0。</sub></td>
+    <td width="50%"><img src="docs/images/zh-CN/investigate.png" alt="AI 发现：原因、证据和处理方案"><br><sub><b>AI 深挖</b>：每条发现的原因、证据、会不会复发和可选方案。</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/confirm.png" alt="确认执行：列出具体文件和命令"><br><sub><b>确认执行</b>：具体的文件和命令、风险提示，以及是否需要管理员权限。</sub></td>
-    <td width="50%"><img src="docs/images/summary.png" alt="清理统计：实测可用空间和防止复发"><br><sub><b>清理统计</b>：实测的可用空间、隔离区里还剩多少，以及一键防止复发。</sub></td>
+    <td width="50%"><img src="docs/images/zh-CN/confirm.png" alt="确认执行：列出具体文件和命令"><br><sub><b>确认执行</b>：具体的文件和命令、风险提示，以及是否需要管理员权限。</sub></td>
+    <td width="50%"><img src="docs/images/zh-CN/summary.png" alt="清理统计：实测可用空间和防止复发"><br><sub><b>清理统计</b>：实测的可用空间、隔离区里还剩多少，以及一键防止复发。</sub></td>
   </tr>
 </table>
 

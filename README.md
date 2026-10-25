@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.svg" alt="Pare — An AI disk investigator for Windows" width="100%">
+  <img src="docs/images/en/banner.svg" alt="Pare — An AI disk investigator for Windows" width="100%">
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@ Commercial cleaners clear the caches everyone has. The space that actually goes 
 **Pare sends an AI investigator after that kind of waste.** It reads the scan, opens the files it needs, cross-checks installed programs and system state, and explains each problem: what it is, why it happened, whether it will come back, and what you can do about it. Nothing changes on disk until you have seen the exact items or commands and confirmed them, and file cleanups go to a quarantine you can undo.
 
 <p align="center">
-  <img src="docs/images/demo.gif" alt="Scan, AI investigation, confirmation and cleanup summary" width="100%">
+  <img src="docs/images/en/demo.gif" alt="Scan, AI investigation, confirmation and cleanup summary" width="100%">
 </p>
 <p align="center"><sub>Screens recorded from the built-in demo mode; the data is illustrative.</sub></p>
 
@@ -41,12 +41,12 @@ Commercial cleaners clear the caches everyone has. The space that actually goes 
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/overview.png" alt="Directory tree linked to a treemap"><br><sub><b>Scan</b> — directory tree and treemap, with unreadable locations listed instead of counted as zero.</sub></td>
-    <td width="50%"><img src="docs/images/investigate.png" alt="AI findings with cause, evidence and options"><br><sub><b>AI deep dive</b> — each finding with its cause, evidence, regrowth and options.</sub></td>
+    <td width="50%"><img src="docs/images/en/overview.png" alt="Directory tree linked to a treemap"><br><sub><b>Scan</b> — directory tree and treemap, with unreadable locations listed instead of counted as zero.</sub></td>
+    <td width="50%"><img src="docs/images/en/investigate.png" alt="AI findings with cause, evidence and options"><br><sub><b>AI deep dive</b> — each finding with its cause, evidence, regrowth and options.</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/confirm.png" alt="Confirmation dialog listing exact commands and items"><br><sub><b>Confirm</b> — the exact items and commands, warnings and admin requirements.</sub></td>
-    <td width="50%"><img src="docs/images/summary.png" alt="Cleanup summary with measured free space and prevention steps"><br><sub><b>Summary</b> — measured free space, what is still in quarantine, and one-click prevention.</sub></td>
+    <td width="50%"><img src="docs/images/en/confirm.png" alt="Confirmation dialog listing exact commands and items"><br><sub><b>Confirm</b> — the exact items and commands, warnings and admin requirements.</sub></td>
+    <td width="50%"><img src="docs/images/en/summary.png" alt="Cleanup summary with measured free space and prevention steps"><br><sub><b>Summary</b> — measured free space, what is still in quarantine, and one-click prevention.</sub></td>
   </tr>
 </table>
 

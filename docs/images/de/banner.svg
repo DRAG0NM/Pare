@@ -1,0 +1,190 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320" role="img" aria-label="Pare - Ein ki-festplattenermittler für windows">
+  <defs>
+    <pattern id="grid" width="14" height="14" patternUnits="userSpaceOnUse">
+      <circle cx="7" cy="7" r="1" fill="#ffffff" fill-opacity="0.08" />
+    </pattern>
+  </defs>
+  <rect width="1280" height="320" fill="#000000" />
+  <rect width="1280" height="320" fill="url(#grid)" />
+  <g id="logo">
+    <circle cx="82" cy="48" r="14" fill="#f2f2f2" />
+    <circle cx="118" cy="48" r="14" fill="#f2f2f2" />
+    <circle cx="154" cy="48" r="14" fill="#f2f2f2" />
+    <circle cx="190" cy="48" r="14" fill="#f2f2f2" />
+    <circle cx="226" cy="48" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="82" cy="85" r="14" fill="#f2f2f2" />
+    <circle cx="118" cy="85" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="154" cy="85" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="190" cy="85" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="226" cy="85" r="14" fill="#f2f2f2" />
+    <circle cx="82" cy="122" r="14" fill="#f2f2f2" />
+    <circle cx="118" cy="122" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="154" cy="122" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="190" cy="122" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="226" cy="122" r="14" fill="#f2f2f2" />
+    <circle cx="82" cy="159" r="14" fill="#f2f2f2" />
+    <circle cx="118" cy="159" r="14" fill="#f2f2f2" />
+    <circle cx="154" cy="159" r="14" fill="#f2f2f2" />
+    <circle cx="190" cy="159" r="14" fill="#f2f2f2" />
+    <circle cx="226" cy="159" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="82" cy="196" r="14" fill="#f2f2f2" />
+    <circle cx="118" cy="196" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="154" cy="196" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="190" cy="196" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="226" cy="196" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="82" cy="233" r="14" fill="#f2f2f2" />
+    <circle cx="118" cy="233" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="154" cy="233" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="190" cy="233" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="226" cy="233" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="82" cy="270" r="14" fill="#f2f2f2" />
+    <circle cx="118" cy="270" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="154" cy="270" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="190" cy="270" r="14" fill="#f2f2f2" fill-opacity="0.14" />
+    <circle cx="226" cy="270" r="14" fill="#EC2A31" />
+  </g>
+  <g id="wordmark" fill="#f2f2f2">
+    <circle cx="400" cy="88" r="8.5" />
+    <circle cx="422" cy="88" r="8.5" />
+    <circle cx="444" cy="88" r="8.5" />
+    <circle cx="466" cy="88" r="8.5" />
+    <circle cx="488" cy="88" r="8.5" fill-opacity="0.14" />
+    <circle cx="400" cy="110" r="8.5" />
+    <circle cx="422" cy="110" r="8.5" fill-opacity="0.14" />
+    <circle cx="444" cy="110" r="8.5" fill-opacity="0.14" />
+    <circle cx="466" cy="110" r="8.5" fill-opacity="0.14" />
+    <circle cx="488" cy="110" r="8.5" />
+    <circle cx="400" cy="132" r="8.5" />
+    <circle cx="422" cy="132" r="8.5" fill-opacity="0.14" />
+    <circle cx="444" cy="132" r="8.5" fill-opacity="0.14" />
+    <circle cx="466" cy="132" r="8.5" fill-opacity="0.14" />
+    <circle cx="488" cy="132" r="8.5" />
+    <circle cx="400" cy="154" r="8.5" />
+    <circle cx="422" cy="154" r="8.5" />
+    <circle cx="444" cy="154" r="8.5" />
+    <circle cx="466" cy="154" r="8.5" />
+    <circle cx="488" cy="154" r="8.5" fill-opacity="0.14" />
+    <circle cx="400" cy="176" r="8.5" />
+    <circle cx="422" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="444" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="466" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="488" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="400" cy="198" r="8.5" />
+    <circle cx="422" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="444" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="466" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="488" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="400" cy="220" r="8.5" />
+    <circle cx="422" cy="220" r="8.5" fill-opacity="0.14" />
+    <circle cx="444" cy="220" r="8.5" fill-opacity="0.14" />
+    <circle cx="466" cy="220" r="8.5" fill-opacity="0.14" />
+    <circle cx="488" cy="220" r="8.5" fill-opacity="0.14" />
+    <circle cx="532" cy="88" r="8.5" fill-opacity="0.14" />
+    <circle cx="554" cy="88" r="8.5" />
+    <circle cx="576" cy="88" r="8.5" />
+    <circle cx="598" cy="88" r="8.5" />
+    <circle cx="620" cy="88" r="8.5" fill-opacity="0.14" />
+    <circle cx="532" cy="110" r="8.5" />
+    <circle cx="554" cy="110" r="8.5" fill-opacity="0.14" />
+    <circle cx="576" cy="110" r="8.5" fill-opacity="0.14" />
+    <circle cx="598" cy="110" r="8.5" fill-opacity="0.14" />
+    <circle cx="620" cy="110" r="8.5" />
+    <circle cx="532" cy="132" r="8.5" />
+    <circle cx="554" cy="132" r="8.5" fill-opacity="0.14" />
+    <circle cx="576" cy="132" r="8.5" fill-opacity="0.14" />
+    <circle cx="598" cy="132" r="8.5" fill-opacity="0.14" />
+    <circle cx="620" cy="132" r="8.5" />
+    <circle cx="532" cy="154" r="8.5" />
+    <circle cx="554" cy="154" r="8.5" />
+    <circle cx="576" cy="154" r="8.5" />
+    <circle cx="598" cy="154" r="8.5" />
+    <circle cx="620" cy="154" r="8.5" />
+    <circle cx="532" cy="176" r="8.5" />
+    <circle cx="554" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="576" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="598" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="620" cy="176" r="8.5" />
+    <circle cx="532" cy="198" r="8.5" />
+    <circle cx="554" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="576" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="598" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="620" cy="198" r="8.5" />
+    <circle cx="532" cy="220" r="8.5" />
+    <circle cx="554" cy="220" r="8.5" fill-opacity="0.14" />
+    <circle cx="576" cy="220" r="8.5" fill-opacity="0.14" />
+    <circle cx="598" cy="220" r="8.5" fill-opacity="0.14" />
+    <circle cx="620" cy="220" r="8.5" />
+    <circle cx="664" cy="88" r="8.5" />
+    <circle cx="686" cy="88" r="8.5" />
+    <circle cx="708" cy="88" r="8.5" />
+    <circle cx="730" cy="88" r="8.5" />
+    <circle cx="752" cy="88" r="8.5" fill-opacity="0.14" />
+    <circle cx="664" cy="110" r="8.5" />
+    <circle cx="686" cy="110" r="8.5" fill-opacity="0.14" />
+    <circle cx="708" cy="110" r="8.5" fill-opacity="0.14" />
+    <circle cx="730" cy="110" r="8.5" fill-opacity="0.14" />
+    <circle cx="752" cy="110" r="8.5" />
+    <circle cx="664" cy="132" r="8.5" />
+    <circle cx="686" cy="132" r="8.5" fill-opacity="0.14" />
+    <circle cx="708" cy="132" r="8.5" fill-opacity="0.14" />
+    <circle cx="730" cy="132" r="8.5" fill-opacity="0.14" />
+    <circle cx="752" cy="132" r="8.5" />
+    <circle cx="664" cy="154" r="8.5" />
+    <circle cx="686" cy="154" r="8.5" />
+    <circle cx="708" cy="154" r="8.5" />
+    <circle cx="730" cy="154" r="8.5" />
+    <circle cx="752" cy="154" r="8.5" fill-opacity="0.14" />
+    <circle cx="664" cy="176" r="8.5" />
+    <circle cx="686" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="708" cy="176" r="8.5" />
+    <circle cx="730" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="752" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="664" cy="198" r="8.5" />
+    <circle cx="686" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="708" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="730" cy="198" r="8.5" />
+    <circle cx="752" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="664" cy="220" r="8.5" />
+    <circle cx="686" cy="220" r="8.5" fill-opacity="0.14" />
+    <circle cx="708" cy="220" r="8.5" fill-opacity="0.14" />
+    <circle cx="730" cy="220" r="8.5" fill-opacity="0.14" />
+    <circle cx="752" cy="220" r="8.5" />
+    <circle cx="796" cy="88" r="8.5" />
+    <circle cx="818" cy="88" r="8.5" />
+    <circle cx="840" cy="88" r="8.5" />
+    <circle cx="862" cy="88" r="8.5" />
+    <circle cx="884" cy="88" r="8.5" />
+    <circle cx="796" cy="110" r="8.5" />
+    <circle cx="818" cy="110" r="8.5" fill-opacity="0.14" />
+    <circle cx="840" cy="110" r="8.5" fill-opacity="0.14" />
+    <circle cx="862" cy="110" r="8.5" fill-opacity="0.14" />
+    <circle cx="884" cy="110" r="8.5" fill-opacity="0.14" />
+    <circle cx="796" cy="132" r="8.5" />
+    <circle cx="818" cy="132" r="8.5" fill-opacity="0.14" />
+    <circle cx="840" cy="132" r="8.5" fill-opacity="0.14" />
+    <circle cx="862" cy="132" r="8.5" fill-opacity="0.14" />
+    <circle cx="884" cy="132" r="8.5" fill-opacity="0.14" />
+    <circle cx="796" cy="154" r="8.5" />
+    <circle cx="818" cy="154" r="8.5" />
+    <circle cx="840" cy="154" r="8.5" />
+    <circle cx="862" cy="154" r="8.5" />
+    <circle cx="884" cy="154" r="8.5" fill-opacity="0.14" />
+    <circle cx="796" cy="176" r="8.5" />
+    <circle cx="818" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="840" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="862" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="884" cy="176" r="8.5" fill-opacity="0.14" />
+    <circle cx="796" cy="198" r="8.5" />
+    <circle cx="818" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="840" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="862" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="884" cy="198" r="8.5" fill-opacity="0.14" />
+    <circle cx="796" cy="220" r="8.5" />
+    <circle cx="818" cy="220" r="8.5" />
+    <circle cx="840" cy="220" r="8.5" />
+    <circle cx="862" cy="220" r="8.5" />
+    <circle cx="884" cy="220" r="8.5" />
+  </g>
+  <circle cx="928" cy="220" r="8.5" fill="#EC2A31" />
+  <text x="400" y="272" fill="#ffffff" fill-opacity="0.6" font-size="17" letter-spacing="5" style="font-family: ui-monospace, 'Space Mono', Consolas, monospace">EIN KI-FESTPLATTENERMITTLER FÜR WINDOWS</text>
+</svg>

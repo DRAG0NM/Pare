@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/banner.svg" alt="Pare — Un enquêteur IA pour les disques Windows" width="100%">
+  <img src="docs/images/fr/banner.svg" alt="Pare — Un enquêteur IA pour les disques Windows" width="100%">
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@ Les logiciels de nettoyage du commerce vident les caches que tout le monde poss�
 **Pare envoie un enquêteur IA traquer ce genre de gaspillage.** Il lit l'analyse, ouvre les fichiers dont il a besoin, recoupe les programmes installés et l'état du système, puis explique chaque problème : de quoi il s'agit, pourquoi il est apparu, s'il reviendra, et ce que vous pouvez faire. Rien ne change sur le disque tant que vous n'avez pas vu les éléments ou les commandes exacts et que vous ne les avez pas confirmés ; les nettoyages de fichiers vont dans une quarantaine que vous pouvez annuler.
 
 <p align="center">
-  <img src="docs/images/demo.gif" alt="Analyse, enquête de l'IA, confirmation et récapitulatif du nettoyage" width="100%">
+  <img src="docs/images/fr/demo.gif" alt="Analyse, enquête de l'IA, confirmation et récapitulatif du nettoyage" width="100%">
 </p>
 <p align="center"><sub>Écrans enregistrés depuis le mode démo intégré ; les données sont fictives.</sub></p>
 
@@ -41,12 +41,12 @@ Les logiciels de nettoyage du commerce vident les caches que tout le monde poss�
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/overview.png" alt="Arborescence des répertoires liée à un treemap"><br><sub><b>Analyse</b> — arborescence et treemap ; les emplacements illisibles sont listés au lieu d'être comptés pour zéro.</sub></td>
-    <td width="50%"><img src="docs/images/investigate.png" alt="Constats de l'IA avec cause, preuves et options"><br><sub><b>Enquête de l'IA</b> — chaque constat avec sa cause, ses preuves, le risque de retour et les options.</sub></td>
+    <td width="50%"><img src="docs/images/fr/overview.png" alt="Arborescence des répertoires liée à un treemap"><br><sub><b>Analyse</b> — arborescence et treemap ; les emplacements illisibles sont listés au lieu d'être comptés pour zéro.</sub></td>
+    <td width="50%"><img src="docs/images/fr/investigate.png" alt="Constats de l'IA avec cause, preuves et options"><br><sub><b>Enquête de l'IA</b> — chaque constat avec sa cause, ses preuves, le risque de retour et les options.</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/confirm.png" alt="Boîte de dialogue de confirmation listant les commandes et éléments exacts"><br><sub><b>Confirmation</b> — les éléments et commandes exacts, les avertissements et les droits d'administrateur requis.</sub></td>
-    <td width="50%"><img src="docs/images/summary.png" alt="Récapitulatif du nettoyage avec espace libre mesuré et étapes de prévention"><br><sub><b>Récapitulatif</b> — espace libre mesuré, ce qui reste en quarantaine, et prévention en un clic.</sub></td>
+    <td width="50%"><img src="docs/images/fr/confirm.png" alt="Boîte de dialogue de confirmation listant les commandes et éléments exacts"><br><sub><b>Confirmation</b> — les éléments et commandes exacts, les avertissements et les droits d'administrateur requis.</sub></td>
+    <td width="50%"><img src="docs/images/fr/summary.png" alt="Récapitulatif du nettoyage avec espace libre mesuré et étapes de prévention"><br><sub><b>Récapitulatif</b> — espace libre mesuré, ce qui reste en quarantaine, et prévention en un clic.</sub></td>
   </tr>
 </table>
 
