@@ -189,6 +189,8 @@ export interface Backend {
   UndoBatch(manifest: string): Promise<Execution>
   PurgeBatch(manifest: string): Promise<{ execution: Execution; freedBytes: number }>
   ListHistory(): Promise<HistoryEntry[]>
+  ExportLog(): Promise<string>
+  OpenIssuePage(): Promise<void>
 }
 
 const host = window as unknown as {

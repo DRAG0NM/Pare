@@ -178,13 +178,36 @@ func (a *App) PrepareExecution(chosen []ChosenAction, rulePaths []string) (Execu
 		}
 		for i := range run.actions {
 			view := &run.actions[i]
-			for _, path := range run.keyPaths[view.Key] {
-				item, ok := byPath[strings.ToLower(filepath.Clean(path))]
-				if !ok {
+			paths, ok := run.keyPaths[view.Key]
+			if !ok {
+				continue
+			}
+			// A folder whose contents may go (Windows\SoftwareDistribution\Download and
+			// the like) was expanded into the entries inside it; follow those, so the
+			// dialog and Execute both work with the real items.
+			var resolved []string
+			for _, path := range paths {
+				clean := strings.ToLower(filepath.Clean(path))
+				if item, found := byPath[clean]; found {
+					resolved = append(resolved, item.Path)
 					continue
 				}
+				if plan.ContentsOnly(path) {
+					for _, item := range built.Items {
+						if strings.ToLower(filepath.Dir(item.Path)) == clean {
+							resolved = append(resolved, item.Path)
+						}
+					}
+				}
+			}
+			run.keyPaths[view.Key] = resolved
+			for _, path := range resolved {
+				item := byPath[strings.ToLower(filepath.Clean(path))]
 				view.Items = append(view.Items, itemView(item))
 				view.Runnable = view.Runnable || item.Executable
+			}
+			if len(view.Items) == 0 {
+				view.Error = "扫描结果里没有可以处理的内容，可能已经清理过或扫描后有变化，请重新扫描后再试"
 			}
 		}
 	}
@@ -209,6 +232,14 @@ func (a *App) PrepareExecution(chosen []ChosenAction, rulePaths []string) (Execu
 	a.mu.Lock()
 	a.prepared = run
 	a.mu.Unlock()
+	for _, action := range run.actions {
+		a.logf("待确认 %s：%s / %s（%s），%d 项，可执行 %v，错误 %q", action.Key, action.FindingTitle, action.Label, action.Kind, len(action.Items), action.Runnable, action.Error)
+		for _, item := range action.Items {
+			if !item.Executable {
+				a.logf("    不可执行 %s：%s", item.Path, item.Reason)
+			}
+		}
+	}
 	return ExecutionPreview{Actions: run.actions}, nil
 }
 
@@ -399,6 +430,13 @@ func (a *App) execute(run *preparedRun, accepted map[string]bool, root string) E
 		seen[finding.ID] = true
 		report.Tips = append(report.Tips, RegrowthTip{FindingID: finding.ID, FindingTitle: finding.Title, Text: finding.Regrowth})
 	}
+	for _, result := range report.Results {
+		a.logf("执行 %s：%s / %s（%s）→ %s，%d 字节，%s", result.Key, result.FindingTitle, result.Label, result.Kind, result.Status, result.Bytes, result.Detail)
+		if result.Output != "" {
+			a.logf("    输出：%s", clipLog(result.Output))
+		}
+	}
+	a.logf("执行结束：%s 可用 %d → %d 字节，隔离 %d 字节", report.Volume, report.FreeBefore, report.FreeAfter, report.QuarantinedBytes)
 	a.recordCleanup(report)
 	return report
 }
@@ -435,7 +473,9 @@ func (a *App) UndoBatch(manifest string) (model.Execution, error) {
 	if err := a.checkManifest(manifest); err != nil {
 		return model.Execution{}, err
 	}
-	return executor.Undo(context.Background(), manifest, time.Now())
+	execution, err := executor.Undo(context.Background(), manifest, time.Now())
+	a.logf("撤回 %s：%d 项，错误 %v", manifest, len(execution.Items), err)
+	return execution, err
 }
 
 type PurgeResult struct {
@@ -453,6 +493,7 @@ func (a *App) PurgeBatch(manifest string) (PurgeResult, error) {
 	execution, err := executor.Purge(context.Background(), manifest, time.Now())
 	_, after, _ := volumeSpace(volume)
 	result := PurgeResult{Execution: execution, FreedBytes: int64(after) - int64(before)}
+	a.logf("清空 %s：释放 %d 字节，错误 %v", manifest, result.FreedBytes, err)
 	a.recordPurge(volume, execution, result.FreedBytes)
 	return result, err
 }

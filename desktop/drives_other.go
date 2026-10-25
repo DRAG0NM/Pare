@@ -20,3 +20,7 @@ func (a *App) Elevated() bool {
 func volumeSpace(string) (total, free uint64, ok bool) {
 	return 0, 0, false
 }
+
+func osVersion() string {
+	return "unknown"
+}

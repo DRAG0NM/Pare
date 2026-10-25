@@ -3,6 +3,8 @@
 package main
 
 import (
+	"fmt"
+
 	"golang.org/x/sys/windows"
 )
 
@@ -17,6 +19,12 @@ type Drive struct {
 // scanner enable the backup privilege that reads system-only folders.
 func (a *App) Elevated() bool {
 	return windows.GetCurrentProcessToken().IsElevated()
+}
+
+// osVersion names the Windows build for log exports, for example "Windows 10.0.26100".
+func osVersion() string {
+	v := windows.RtlGetVersion()
+	return fmt.Sprintf("Windows %d.%d.%d", v.MajorVersion, v.MinorVersion, v.BuildNumber)
 }
 
 // volumeSpace returns the size and free space of the volume whose root is root.

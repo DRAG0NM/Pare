@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/DRAG0NM/Pare/internal/advisor"
+	"github.com/DRAG0NM/Pare/internal/model"
 	"github.com/DRAG0NM/Pare/internal/scanner"
 )
 
@@ -88,5 +89,34 @@ func TestPreventionActionsAndHistory(t *testing.T) {
 	history := app.ListHistory()
 	if len(history) != 1 || history[0].Items != 1 || history[0].QuarantinedBytes != 300 || len(history[0].Actions) != 2 {
 		t.Fatalf("history = %+v", history)
+	}
+}
+
+// A folder whose contents may go is expanded into its entries; the dialog must list
+// them (it used to show an empty, unclickable card), and an empty one must say why.
+func TestPrepareExecutionFollowsExpandedFolders(t *testing.T) {
+	download := `Z:\Windows\SoftwareDistribution\Download`
+	app := NewApp()
+	app.report = model.ScanReport{Complete: true, Nodes: []model.Node{
+		{Path: download, ParentPath: `Z:\Windows\SoftwareDistribution`, Kind: "directory", FileID: "1"},
+		{Path: download + `\a.cab`, ParentPath: download, Kind: "file", FileID: "2", AllocationSize: 100},
+		{Path: download + `\b.cab`, ParentPath: download, Kind: "file", FileID: "3", AllocationSize: 200},
+	}}
+	app.findings = []advisor.Finding{
+		{ID: "f1", Title: "更新缓存", Actions: []advisor.Action{{Kind: advisor.ActionQuarantine, Label: "移入隔离区", Paths: []string{download}}}},
+		{ID: "f2", Title: "空目录", Actions: []advisor.Action{{Kind: advisor.ActionQuarantine, Label: "移入隔离区", Paths: []string{`Z:\Windows\Temp`}}}},
+	}
+	preview, err := app.PrepareExecution([]ChosenAction{{"f1", 0, false}, {"f2", 0, false}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := preview.Actions[0]; len(got.Items) != 2 || got.Items[0].Path != download+`\a.cab` || got.Error != "" {
+		t.Errorf("expanded folder preview = %+v", got)
+	}
+	if paths := app.prepared.keyPaths["f1:0"]; len(paths) != 2 {
+		t.Errorf("Execute would look for %v", paths)
+	}
+	if got := preview.Actions[1]; got.Runnable || got.Error == "" {
+		t.Errorf("empty folder preview has no reason: %+v", got)
 	}
 }

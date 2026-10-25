@@ -151,8 +151,19 @@ func (a *App) StartInvestigation(scope, note, depth string, continueRun bool) er
 		Tools:    env.Tools(),
 		MaxSteps: steps,
 		IDPrefix: prefix,
-		Emit:     func(e advisor.Event) { runtime.EventsEmit(a.ctx, "ai:event", e) },
+		Emit: func(e advisor.Event) {
+			switch e.Kind {
+			case advisor.EventFinding:
+				a.logf("深挖发现 %s：%s（%d 字节，%s）", e.Finding.ID, e.Finding.Title, e.Finding.Bytes, e.Finding.Risk)
+			case advisor.EventError:
+				a.logf("深挖出错（第 %d 步）：%s", e.Step, e.Text)
+			case advisor.EventDone:
+				a.logf("深挖结束：第 %d 步，%d tokens", e.Step, e.Tokens)
+			}
+			runtime.EventsEmit(a.ctx, "ai:event", e)
+		},
 	}
+	a.logf("开始深挖 %s：%s · %s，深度 %s（%d 步），继续 %v", scope, settings.Provider, settings.Model, depth, steps, continueRun)
 	go func() {
 		findings, runErr := agent.Run(ctx, advisor.SystemPrompt(), advisor.UserPrompt(scope, note, steps, reported))
 		result := InvestigationResult{Cancelled: errors.Is(runErr, context.Canceled)}
@@ -177,6 +188,7 @@ func (a *App) StartInvestigation(scope, note, depth string, continueRun bool) er
 		a.ai.consents = nil
 		a.ai.mu.Unlock()
 		cancel()
+		a.logf("深挖完成：本次 %d 条，共 %d 条，取消 %v，错误 %q", len(findings), len(result.Findings), result.Cancelled, result.Error)
 		runtime.EventsEmit(a.ctx, "ai:finished", result)
 	}()
 	return nil
@@ -210,6 +222,7 @@ func (a *App) askConsent(ctx context.Context, path, reason string) bool {
 	a.ai.consents[id] = answer
 	a.ai.mu.Unlock()
 
+	a.logf("请求读取敏感文件 %s", path)
 	runtime.EventsEmit(a.ctx, "ai:consent", ConsentRequest{ID: id, Path: path, Reason: reason})
 	timer := time.NewTimer(consentTimeout)
 	defer timer.Stop()

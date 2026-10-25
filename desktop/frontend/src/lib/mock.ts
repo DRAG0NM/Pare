@@ -427,6 +427,13 @@ export const mockBackend: Backend = {
     mockHistory.unshift({ time: new Date().toISOString(), kind: 'purge', volume: 'C:\\', freedBytes: freed, quarantinedBytes: 0, items: ex.items.length, actions: [] })
     return { execution: ex, freedBytes: freed }
   },
+  async ExportLog() {
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    return 'C:\\Users\\me\\Desktop\\pare-log-demo.txt'
+  },
+  async OpenIssuePage() {
+    window.open('https://github.com/DRAG0NM/Pare/issues/new', '_blank')
+  },
   async ListHistory() {
     return mockHistory.map((h) => ({ ...h }))
   },

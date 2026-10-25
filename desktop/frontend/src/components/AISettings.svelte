@@ -20,6 +20,22 @@
   let testing = $state(false)
   let result = $state<{ ok: boolean; text: string } | null>(null)
   let error = $state('')
+  let exporting = $state(false)
+  let exported = $state('')
+  let exportError = $state('')
+
+  async function exportLog() {
+    exporting = true
+    exportError = ''
+    try {
+      const path = await backend.ExportLog()
+      if (path) exported = path
+    } catch (e) {
+      exportError = String(e).replace(/^Error:\s*/, '')
+    } finally {
+      exporting = false
+    }
+  }
 
   onMount(async () => {
     try {
@@ -93,6 +109,17 @@
         {/each}
       </div>
     </div>
+    <div class="feedback">
+      <span>反馈问题</span>
+      <div class="row">
+        <button onclick={exportLog} disabled={exporting}>{exporting ? '导出中…' : '导出日志…'}</button>
+        <button onclick={() => backend.OpenIssuePage()}>去 GitHub 提交问题</button>
+      </div>
+    </div>
+    <p class="muted small fb-note">
+      {#if exported}已保存到 <span class="mono">{exported}</span>，提交问题时把它作为附件上传即可。{:else}日志包含系统版本、扫描和清理的路径与结果，不包含 API Key。{/if}
+    </p>
+    {#if exportError}<p class="bad small">{exportError}</p>{/if}
     <h3>AI 服务</h3>
     {#if intro}<p class="intro">{intro}</p>{/if}
     {#if !loaded}
@@ -180,6 +207,26 @@
     justify-content: space-between;
     font-size: 12px;
     font-weight: 600;
+  }
+  .feedback {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .feedback .row {
+    display: flex;
+    gap: 6px;
+    font-weight: 400;
+  }
+  .feedback button {
+    padding: 3px 12px;
+    font-size: 12px;
+  }
+  .fb-note {
+    margin: -4px 0 0;
+    word-break: break-all;
   }
   .seg {
     display: inline-flex;

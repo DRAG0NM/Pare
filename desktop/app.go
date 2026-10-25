@@ -39,6 +39,8 @@ type App struct {
 	executing bool
 	// historyFile overrides the cleanup record location (tests).
 	historyFile string
+	// logFolder overrides the log location (tests).
+	logFolder string
 	ai        investigation
 }
 
@@ -48,6 +50,7 @@ func NewApp() *App {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.logf("启动 Pare %s · %s · 管理员身份 %v", appVersion, osVersion(), a.Elevated())
 }
 
 // NodeView is one row of the directory tree or one treemap cell.
@@ -110,6 +113,7 @@ func (a *App) StartScan(root string) error {
 	a.cancel = cancel
 	a.mu.Unlock()
 
+	a.logf("开始扫描 %s", absolute)
 	go func() {
 		started := time.Now()
 		backend := scanner.NewWindowsScannerWithOptions(scanner.Options{
@@ -149,6 +153,7 @@ func (a *App) StartScan(root string) error {
 		}
 		a.mu.Unlock()
 		cancel()
+		a.logf("扫描 %s：%d 项，%.1f 秒，完整 %v，读不到 %d 处，取消 %v，错误 %q", absolute, summary.Entries, summary.Seconds, summary.Complete, summary.GapCount, summary.Cancelled, summary.Error)
 		runtime.EventsEmit(a.ctx, "scan:done", summary)
 	}()
 	return nil
