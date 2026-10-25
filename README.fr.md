@@ -8,16 +8,16 @@
 
 <p align="center">
   <img alt="Plateforme" src="https://img.shields.io/badge/platform-Windows%2011-0e7d60?style=flat-square">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.2.1--beta-3cc59b?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.3.0--beta-3cc59b?style=flat-square">
   <img alt="Licence" src="https://img.shields.io/badge/license-MIT-2b3632?style=flat-square">
   <img alt="Go" src="https://img.shields.io/badge/Go-core-00ADD8?style=flat-square&logo=go&logoColor=white">
   <img alt="Svelte" src="https://img.shields.io/badge/Svelte-UI-FF3E00?style=flat-square&logo=svelte&logoColor=white">
 </p>
 
 <p align="center">
-  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.2.1/Pare-0.2.1-win-x64.zip"><img alt="Télécharger pour Windows" src="https://img.shields.io/badge/T%C3%A9l%C3%A9charger%20pour%20Windows-v0.2.1%20pr%C3%A9version-0e7d60?style=for-the-badge&logo=windows&logoColor=white"></a>
+  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.3.0/Pare-0.3.0-win-x64.zip"><img alt="Télécharger pour Windows" src="https://img.shields.io/badge/T%C3%A9l%C3%A9charger%20pour%20Windows-v0.3.0%20pr%C3%A9version-0e7d60?style=for-the-badge&logo=windows&logoColor=white"></a>
 </p>
-<p align="center"><sub>Archive zip portable · 5 Mo · sans installateur · <a href="https://github.com/DRAG0NM/Pare/releases/tag/v0.2.1">notes de version et sommes de contrôle</a></sub></p>
+<p align="center"><sub>Archive zip portable · 5 Mo · sans installateur · <a href="https://github.com/DRAG0NM/Pare/releases/tag/v0.3.0">notes de version et sommes de contrôle</a></sub></p>
 
 Les logiciels de nettoyage du commerce vident les caches que tout le monde possède. L'espace qui disparaît réellement est le plus souvent propre à une seule machine : un programme de mise à jour qui télécharge sans fin le même installateur de 300 Mo, un disque WSL qui grossit sans jamais rétrécir, un paramètre écrit dans la mauvaise section et ignoré en silence, des binaires natifs pour des plateformes que ce PC n'exécutera jamais.
 
@@ -52,7 +52,7 @@ Les logiciels de nettoyage du commerce vident les caches que tout le monde poss�
 
 ## Pour commencer
 
-1. Téléchargez [Pare-0.2.1-win-x64.zip](https://github.com/DRAG0NM/Pare/releases/download/v0.2.1/Pare-0.2.1-win-x64.zip) et extrayez-le où vous voulez. L'application est portable ; il n'y a rien à installer. Le `pare-desktop.exe` seul et les sommes de contrôle SHA-256 se trouvent sur la [page de la version](https://github.com/DRAG0NM/Pare/releases/tag/v0.2.1).
+1. Téléchargez [Pare-0.3.0-win-x64.zip](https://github.com/DRAG0NM/Pare/releases/download/v0.3.0/Pare-0.3.0-win-x64.zip) et extrayez-le où vous voulez. L'application est portable ; il n'y a rien à installer. Le `pare-desktop.exe` seul et les sommes de contrôle SHA-256 se trouvent sur la [page de la version](https://github.com/DRAG0NM/Pare/releases/tag/v0.3.0).
 2. Faites un clic droit dessus et choisissez **Exécuter en tant qu'administrateur** pour obtenir une analyse complète. Sans élévation, les dossiers que seul SYSTEM peut lire sont signalés comme illisibles.
 3. Choisissez un lecteur. Lorsque vous ouvrez l'étape de nettoyage pour la première fois, Pare demande une clé d'API d'un fournisseur compatible OpenAI. DeepSeek est présélectionné ; Qwen, Kimi, Zhipu, OpenAI et les points d'accès personnalisés sont aussi disponibles.
 4. Lancez une enquête approfondie, passez en revue les constats, choisissez une option pour chacun, puis confirmez.

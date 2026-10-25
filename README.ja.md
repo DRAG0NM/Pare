@@ -8,16 +8,16 @@
 
 <p align="center">
   <img alt="プラットフォーム" src="https://img.shields.io/badge/platform-Windows%2011-0e7d60?style=flat-square">
-  <img alt="バージョン" src="https://img.shields.io/badge/version-0.2.1--beta-3cc59b?style=flat-square">
+  <img alt="バージョン" src="https://img.shields.io/badge/version-0.3.0--beta-3cc59b?style=flat-square">
   <img alt="ライセンス" src="https://img.shields.io/badge/license-MIT-2b3632?style=flat-square">
   <img alt="Go" src="https://img.shields.io/badge/Go-core-00ADD8?style=flat-square&logo=go&logoColor=white">
   <img alt="Svelte" src="https://img.shields.io/badge/Svelte-UI-FF3E00?style=flat-square&logo=svelte&logoColor=white">
 </p>
 
 <p align="center">
-  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.2.1/Pare-0.2.1-win-x64.zip"><img alt="Windows 版をダウンロード" src="https://img.shields.io/badge/Windows%20%E7%89%88%E3%82%92%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%89-v0.2.1%20%E3%83%97%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC-0e7d60?style=for-the-badge&logo=windows&logoColor=white"></a>
+  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.3.0/Pare-0.3.0-win-x64.zip"><img alt="Windows 版をダウンロード" src="https://img.shields.io/badge/Windows%20%E7%89%88%E3%82%92%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%89-v0.3.0%20%E3%83%97%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC-0e7d60?style=for-the-badge&logo=windows&logoColor=white"></a>
 </p>
-<p align="center"><sub>ポータブル zip · 5 MB · インストーラー不要 · <a href="https://github.com/DRAG0NM/Pare/releases/tag/v0.2.1">リリースノートとチェックサム</a></sub></p>
+<p align="center"><sub>ポータブル zip · 5 MB · インストーラー不要 · <a href="https://github.com/DRAG0NM/Pare/releases/tag/v0.3.0">リリースノートとチェックサム</a></sub></p>
 
 市販のクリーナーが消すのは、どの PC にもあるキャッシュです。実際に消えていく容量は、たいてい 1 台の PC に固有のものです。同じ 300 MB のインストーラーを何度もダウンロードし続けるアップデーター、増える一方で縮まない WSL のディスク、誤ったセクションに書かれて黙って無視されている設定、この PC では決して動かないプラットフォーム向けのネイティブバイナリなどです。
 
@@ -52,7 +52,7 @@
 
 ## はじめに
 
-1. [Pare-0.2.1-win-x64.zip](https://github.com/DRAG0NM/Pare/releases/download/v0.2.1/Pare-0.2.1-win-x64.zip) をダウンロードし、好きな場所に展開します。ポータブル版なので、インストールは不要です。`pare-desktop.exe` 単体と SHA-256 チェックサムは[リリースページ](https://github.com/DRAG0NM/Pare/releases/tag/v0.2.1)にあります。
+1. [Pare-0.3.0-win-x64.zip](https://github.com/DRAG0NM/Pare/releases/download/v0.3.0/Pare-0.3.0-win-x64.zip) をダウンロードし、好きな場所に展開します。ポータブル版なので、インストールは不要です。`pare-desktop.exe` 単体と SHA-256 チェックサムは[リリースページ](https://github.com/DRAG0NM/Pare/releases/tag/v0.3.0)にあります。
 2. 完全なスキャンを行うには、右クリックして**管理者として実行**を選びます。昇格しない場合、SYSTEM だけが読み取れるフォルダーは読み取り不可として表示されます。
 3. ドライブを選びます。クリーンアップの段階を初めて開くと、Pare は OpenAI 互換のプロバイダーの API キーを求めます。既定では DeepSeek が選ばれており、Qwen、Kimi、Zhipu、OpenAI、カスタムエンドポイントも選べます。
 4. 詳細調査を開始し、発見を確認して、それぞれに対する選択肢を選び、確定します。

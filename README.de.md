@@ -8,16 +8,16 @@
 
 <p align="center">
   <img alt="Plattform" src="https://img.shields.io/badge/platform-Windows%2011-0e7d60?style=flat-square">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.2.1--beta-3cc59b?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.3.0--beta-3cc59b?style=flat-square">
   <img alt="Lizenz" src="https://img.shields.io/badge/license-MIT-2b3632?style=flat-square">
   <img alt="Go" src="https://img.shields.io/badge/Go-core-00ADD8?style=flat-square&logo=go&logoColor=white">
   <img alt="Svelte" src="https://img.shields.io/badge/Svelte-UI-FF3E00?style=flat-square&logo=svelte&logoColor=white">
 </p>
 
 <p align="center">
-  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.2.1/Pare-0.2.1-win-x64.zip"><img alt="Für Windows herunterladen" src="https://img.shields.io/badge/F%C3%BCr%20Windows%20herunterladen-v0.2.1%20Vorschau-0e7d60?style=for-the-badge&logo=windows&logoColor=white"></a>
+  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.3.0/Pare-0.3.0-win-x64.zip"><img alt="Für Windows herunterladen" src="https://img.shields.io/badge/F%C3%BCr%20Windows%20herunterladen-v0.3.0%20Vorschau-0e7d60?style=for-the-badge&logo=windows&logoColor=white"></a>
 </p>
-<p align="center"><sub>Portable Zip-Datei · 5 MB · ohne Installer · <a href="https://github.com/DRAG0NM/Pare/releases/tag/v0.2.1">Versionshinweise und Prüfsummen</a></sub></p>
+<p align="center"><sub>Portable Zip-Datei · 5 MB · ohne Installer · <a href="https://github.com/DRAG0NM/Pare/releases/tag/v0.3.0">Versionshinweise und Prüfsummen</a></sub></p>
 
 Handelsübliche Cleaner räumen die Caches auf, die jeder hat. Der Speicherplatz, der tatsächlich verschwindet, hängt meist an einem einzelnen Rechner: ein Updater, der immer wieder denselben 300-MB-Installer herunterlädt, eine WSL-Festplatte, die wächst, aber nie schrumpft, eine Einstellung, die in den falschen Abschnitt geschrieben und stillschweigend ignoriert wurde, native Binärdateien für Plattformen, die dieser PC nie ausführen wird.
 
@@ -52,7 +52,7 @@ Handelsübliche Cleaner räumen die Caches auf, die jeder hat. Der Speicherplatz
 
 ## Erste Schritte
 
-1. Laden Sie [Pare-0.2.1-win-x64.zip](https://github.com/DRAG0NM/Pare/releases/download/v0.2.1/Pare-0.2.1-win-x64.zip) herunter und entpacken Sie die Datei an einen beliebigen Ort. Die Anwendung ist portabel; es gibt nichts zu installieren. Die einzelne `pare-desktop.exe` und die SHA-256-Prüfsummen finden Sie auf der [Release-Seite](https://github.com/DRAG0NM/Pare/releases/tag/v0.2.1).
+1. Laden Sie [Pare-0.3.0-win-x64.zip](https://github.com/DRAG0NM/Pare/releases/download/v0.3.0/Pare-0.3.0-win-x64.zip) herunter und entpacken Sie die Datei an einen beliebigen Ort. Die Anwendung ist portabel; es gibt nichts zu installieren. Die einzelne `pare-desktop.exe` und die SHA-256-Prüfsummen finden Sie auf der [Release-Seite](https://github.com/DRAG0NM/Pare/releases/tag/v0.3.0).
 2. Klicken Sie mit der rechten Maustaste darauf und wählen Sie **Als Administrator ausführen**, um einen vollständigen Scan zu erhalten. Ohne erhöhte Rechte werden Ordner, die nur SYSTEM lesen kann, als nicht lesbar aufgelistet.
 3. Wählen Sie ein Laufwerk. Wenn Sie die Bereinigungsphase zum ersten Mal öffnen, fragt Pare nach einem API-Schlüssel eines OpenAI-kompatiblen Anbieters. DeepSeek ist vorausgewählt; Qwen, Kimi, Zhipu, OpenAI und benutzerdefinierte Endpunkte stehen ebenfalls zur Verfügung.
 4. Starten Sie eine Tiefenanalyse, prüfen Sie die Befunde, wählen Sie für jeden eine Option und bestätigen Sie.
