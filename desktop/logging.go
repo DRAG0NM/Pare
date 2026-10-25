@@ -15,7 +15,7 @@ import (
 )
 
 // appVersion matches the version resource in winres/winres.json.
-const appVersion = "0.3.0"
+const appVersion = "0.4.0"
 
 // logLimit is where the log rotates to pare.log.1, so the two files stay small.
 const logLimit = 2 << 20

@@ -8,16 +8,16 @@
 
 <p align="center">
   <img alt="平台" src="https://img.shields.io/badge/platform-Windows%2011-0c0c0c?style=flat-square&labelColor=1b1b1b">
-  <img alt="版本" src="https://img.shields.io/badge/version-0.3.0--beta-3a3a3a?style=flat-square&labelColor=1b1b1b">
+  <img alt="版本" src="https://img.shields.io/badge/version-0.4.0--beta-3a3a3a?style=flat-square&labelColor=1b1b1b">
   <img alt="授權" src="https://img.shields.io/badge/license-MIT-3a3a3a?style=flat-square&labelColor=1b1b1b">
   <img alt="Go" src="https://img.shields.io/badge/Go-core-0c0c0c?style=flat-square&labelColor=1b1b1b&logo=go&logoColor=white">
   <img alt="Svelte" src="https://img.shields.io/badge/Svelte-UI-0c0c0c?style=flat-square&labelColor=1b1b1b&logo=svelte&logoColor=white">
 </p>
 
 <p align="center">
-  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.3.0/Pare-0.3.0-win-x64.zip"><img alt="下載 Windows 版" src="https://img.shields.io/badge/%E4%B8%8B%E8%BC%89%20Windows%20%E7%89%88-v0.3.0%20%E9%A0%90%E8%A6%BD%E7%89%88-d71920?style=for-the-badge&labelColor=0c0c0c&logo=windows&logoColor=white"></a>
+  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.4.0/Pare-0.4.0-win-x64.zip"><img alt="下載 Windows 版" src="https://img.shields.io/badge/%E4%B8%8B%E8%BC%89%20Windows%20%E7%89%88-v0.4.0%20%E9%A0%90%E8%A6%BD%E7%89%88-d71920?style=for-the-badge&labelColor=0c0c0c&logo=windows&logoColor=white"></a>
 </p>
-<p align="center"><sub>可攜式壓縮檔 · 5 MB · 免安裝 · <a href="https://github.com/DRAG0NM/Pare/releases/tag/v0.3.0">版本說明與檢查碼</a></sub></p>
+<p align="center"><sub>可攜式壓縮檔 · 5 MB · 免安裝 · <a href="https://github.com/DRAG0NM/Pare/releases/tag/v0.4.0">版本說明與檢查碼</a></sub></p>
 
 一般的清理軟體清的是每台電腦都有的快取。真正讓硬碟空間越來越少的，往往是只屬於這台電腦的問題：更新程式一遍又一遍重複下載同一個 300 MB 的安裝檔，WSL 虛擬磁碟只增不減，設定寫到錯誤的區段而被默默忽略，還有這台電腦永遠不會執行的平台所附帶的原生二進位檔。
 
@@ -52,7 +52,7 @@
 
 ## 開始使用
 
-1. 下載 [Pare-0.3.0-win-x64.zip](https://github.com/DRAG0NM/Pare/releases/download/v0.3.0/Pare-0.3.0-win-x64.zip)，解壓縮到任意位置即可。這是可攜式版本，不需要安裝。單獨的 `pare-desktop.exe` 與 SHA-256 檢查碼放在[發行頁面](https://github.com/DRAG0NM/Pare/releases/tag/v0.3.0)。
+1. 下載 [Pare-0.4.0-win-x64.zip](https://github.com/DRAG0NM/Pare/releases/download/v0.4.0/Pare-0.4.0-win-x64.zip)，解壓縮到任意位置即可。這是可攜式版本，不需要安裝。單獨的 `pare-desktop.exe` 與 SHA-256 檢查碼放在[發行頁面](https://github.com/DRAG0NM/Pare/releases/tag/v0.4.0)。
 2. 按右鍵並選擇**以系統管理員身分執行**，才能進行完整掃描。未提升權限時，只有 SYSTEM 能讀取的資料夾會被列為無法讀取。
 3. 選擇一個磁碟。第一次進入清理階段時，Pare 會要求您提供相容 OpenAI 的服務供應商的 API 金鑰。預設選用 DeepSeek；也可以選擇 Qwen、Kimi、Zhipu、OpenAI 或自訂端點。
 4. 開始深入調查，檢視各項發現，為每一項選擇處理選項，然後確認。

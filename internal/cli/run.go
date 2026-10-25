@@ -22,7 +22,7 @@ import (
 	"github.com/DRAG0NM/Pare/internal/serve"
 )
 
-const version = "0.3.0"
+const version = "0.4.0"
 
 const usage = "Usage: pare <command> [options]\n\nCommands:\n  scan    Scan a directory tree and write a JSON report\n  plan    Match cleanup rules against a scan report and write a JSON plan\n  apply   Move a plan's executable files into quarantine\n  undo    Restore files from a quarantine manifest\n  serve   Serve agent hosts over line-delimited JSON on stdin/stdout\n"
 
