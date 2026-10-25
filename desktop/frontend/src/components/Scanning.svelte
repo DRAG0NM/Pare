@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import type { Progress } from '../lib/api'
   import { t } from '../lib/i18n.svelte'
-  import { count, middle, seconds } from '../lib/format'
+  import { count, middle } from '../lib/format'
 
   let { target, progress, onCancel }: { target: string; progress: Progress; onCancel: () => void } = $props()
   let elapsed = $state(0)
@@ -16,12 +16,17 @@
 </script>
 
 <div class="scanning">
-  <div class="spinner" aria-hidden="true"><span></span></div>
+  <!-- Twelve dots light up in turn, like a ring of indicator LEDs. -->
+  <div class="ring" aria-hidden="true">
+    {#each Array(12) as _, i}
+      <span style:transform="rotate({i * 30}deg) translateY(-26px)" style:animation-delay="{(i - 12) * 0.1}s" class:red={i === 0}></span>
+    {/each}
+  </div>
   <h2>{t('正在扫描 {target}', { target })}</h2>
   <div class="stats">
-    <div><strong>{count(progress.entries)}</strong><span class="muted">{t('个条目')}</span></div>
-    <div><strong>{count(progress.directories)}</strong><span class="muted">{t('个目录')}</span></div>
-    <div><strong>{seconds(elapsed)}</strong><span class="muted">{t('已用时间')}</span></div>
+    <div><strong class="dot">{count(progress.entries)}</strong><span class="caption">{t('个条目')}</span></div>
+    <div><strong class="dot">{count(progress.directories)}</strong><span class="caption">{t('个目录')}</span></div>
+    <div><strong class="dot">{elapsed.toFixed(1)}</strong><span class="caption">{t('已用时间')} · s</span></div>
   </div>
   <p class="mono muted current">{middle(progress.current || t('准备中…'), 90)}</p>
   <button disabled={cancelling} onclick={() => ((cancelling = true), onCancel())}>
@@ -51,51 +56,48 @@
     align-items: center;
   }
   .stats strong {
-    font-size: 28px;
-    font-variant-numeric: tabular-nums;
+    font-size: 40px;
+    line-height: 1.1;
   }
   .current {
     height: 20px;
     margin: 0;
   }
-  .spinner {
+  .ring {
     position: relative;
-    width: 56px;
-    height: 56px;
+    width: 64px;
+    height: 64px;
   }
-  .spinner::before,
-  .spinner span {
-    content: '';
+  .ring span {
     position: absolute;
-    inset: 0;
+    left: 50%;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    margin: -3.5px;
     border-radius: 50%;
+    background: var(--text);
+    opacity: 0.12;
+    animation: lit 1.2s steps(1) infinite;
   }
-  .spinner::before {
-    background: var(--accent-soft);
-    animation: halo 1.8s var(--ease) infinite;
+  .ring span.red {
+    background: var(--signal);
   }
-  .spinner span {
-    border: 3px solid var(--surface-2);
-    border-top-color: var(--accent);
-    border-right-color: var(--accent);
-    animation: spin 1s linear infinite;
-  }
-  @keyframes halo {
-    0% {
-      transform: scale(0.85);
-      opacity: 0.9;
+  @keyframes lit {
+    0%,
+    25% {
+      opacity: 1;
     }
-    100% {
-      transform: scale(1.6);
-      opacity: 0;
+    26% {
+      opacity: 0.12;
     }
   }
   .stats div {
-    min-width: 110px;
-    padding: 10px 16px;
+    min-width: 150px;
+    padding: 14px 20px 12px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
+    border-radius: 20px;
+    gap: 2px;
   }
 </style>

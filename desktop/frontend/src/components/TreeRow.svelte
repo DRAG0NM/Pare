@@ -53,13 +53,15 @@
     {:else}
       <span class="toggle"></span>
     {/if}
-    <span class="icon" aria-hidden="true">{node.kind === 'directory' ? '📁' : node.kind === 'reparse' ? '🔗' : node.kind === 'others' ? '…' : '📄'}</span>
+    <span class="icon" aria-hidden="true">
+      {#if node.kind === 'others'}…{:else}<span class="glyph {node.kind === 'directory' ? 'g-folder' : node.kind === 'reparse' ? 'g-ring' : 'g-file'}"></span>{/if}
+    </span>
     <span class="label" title={node.path || node.name}>{node.kind === 'others' ? bt(node.name) : node.name}</span>
     {#if node.incomplete}<span class="badge" title={t('其中有读不到的位置，大小是下限')}>{t('不完整')}</span>{/if}
   </span>
   <span class="size">{bytes(node.allocationSize)}</span>
   <span class="share">
-    <span class="bar"><span style:width={percent(node.allocationSize, parentSize)}></span></span>
+    <span class="bar dotted"><span style:width={percent(node.allocationSize, parentSize)}></span></span>
     <span class="pct muted">{percent(node.allocationSize, parentSize)}</span>
   </span>
 </div>
@@ -90,6 +92,7 @@
   }
   .row.selected {
     background: var(--accent-soft);
+    box-shadow: inset 2px 0 0 var(--text);
   }
   .name {
     display: flex;
@@ -107,7 +110,35 @@
   }
   .icon {
     flex: none;
+    width: 12px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--muted);
     font-size: 12px;
+    line-height: 1;
+  }
+  .glyph {
+    display: block;
+    box-sizing: border-box;
+  }
+  .g-folder {
+    width: 10px;
+    height: 8px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+  }
+  .g-file {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .g-ring {
+    width: 8px;
+    height: 8px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
   }
   .label {
     overflow: hidden;
@@ -121,9 +152,11 @@
     flex: none;
     font-size: 11px;
     color: var(--warn);
-    background: var(--warn-soft);
-    border-radius: 4px;
-    padding: 0 5px;
+    background: transparent;
+    border: 1px solid var(--warn);
+    border-radius: 999px;
+    padding: 0 7px;
+    line-height: 16px;
   }
   .size {
     text-align: right;
@@ -137,10 +170,7 @@
   }
   .bar {
     flex: 1;
-    height: 6px;
-    background: var(--surface-2);
-    border-radius: 3px;
-    overflow: hidden;
+    height: 7px;
   }
   .bar span {
     display: block;

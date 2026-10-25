@@ -96,10 +96,10 @@
           <span class="muted small mono ell" title={b.manifest}>{b.manifest}</span>
           {#if messages[b.manifest]}<span class="small msg">{bt(messages[b.manifest])}</span>{/if}
         </div>
-        <span class="size">{bytes(b.quarantinedBytes)}</span>
+        <span class="size dot">{bytes(b.quarantinedBytes)}</span>
         <div class="buttons">
           <button disabled={b.quarantined === 0 || busy === b.manifest} onclick={() => undo(b)}>{t('撤回这批')}</button>
-          <button class:danger={confirming === b.manifest} disabled={b.quarantined === 0 || busy === b.manifest} onclick={() => purgeClick(b)}>
+          <button class="purge" class:danger={confirming === b.manifest} disabled={b.quarantined === 0 || busy === b.manifest} onclick={() => purgeClick(b)}>
             {confirming === b.manifest ? t('再点一次确认永久删除') : t('永久清空')}
           </button>
         </div>
@@ -181,9 +181,8 @@
     gap: 16px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 10px 14px;
+    border-radius: 14px;
+    padding: 12px 16px;
   }
   .info {
     flex: 1;
@@ -200,8 +199,9 @@
     color: var(--accent);
   }
   .size {
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
+    font-size: 20px;
+    line-height: 1;
+    white-space: nowrap;
   }
   .buttons {
     display: flex;
@@ -216,13 +216,21 @@
   .history ul {
     list-style: none;
     margin: 4px 0 0;
-    padding: 0 0 0 12px;
+    padding: 0;
   }
   .history li {
-    padding: 2px 0;
+    padding: 5px 0;
+    border-top: 1px dashed var(--border-strong);
+  }
+  .history li:first-child {
+    border-top: none;
   }
   .history .actions {
     padding-left: 16px;
+  }
+  .history .actions li {
+    padding: 2px 0;
+    border-top: none;
   }
   .quiet {
     border: none;
@@ -236,9 +244,17 @@
     background: transparent;
     color: var(--text);
   }
-  button.danger {
+  button.purge {
+    background: transparent;
+    color: var(--warn);
+    border-color: var(--warn);
+  }
+  button.purge:hover:not(:disabled) {
     background: var(--warn-soft);
     color: var(--warn);
     border-color: var(--warn);
+  }
+  button.danger {
+    background: var(--warn-soft);
   }
 </style>

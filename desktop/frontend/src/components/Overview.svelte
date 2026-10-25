@@ -64,21 +64,21 @@
 <div class="overview">
   <section class="summary">
     {#if summary.volumeUsed > 0}
-      <div class="figure"><span class="muted">{t('{root} 盘上已用', { root: summary.root })}</span><strong>{bytes(summary.volumeUsed)}</strong></div>
+      <div class="figure"><span class="caption">{t('{root} 盘上已用', { root: summary.root })}</span><strong class="dot">{bytes(summary.volumeUsed)}</strong></div>
     {/if}
     {#if summary.volumeUsed > 0}
       <div class="figure" title={t('同一个文件的多个硬链接只算一次；下方目录树按路径计算，所以可能更大')}>
-        <span class="muted">{t('扫描列出')}</span><strong>{bytes(summary.uniqueAllocation)}</strong>
+        <span class="caption">{t('扫描列出')}</span><strong class="dot">{bytes(summary.uniqueAllocation)}</strong>
       </div>
     {:else}
-      <div class="figure"><span class="muted">{t('{root} 实际占用', { root: summary.root })}</span><strong>{bytes(summary.allocationSize)}</strong></div>
+      <div class="figure"><span class="caption">{t('{root} 实际占用', { root: summary.root })}</span><strong class="dot">{bytes(summary.allocationSize)}</strong></div>
     {/if}
-    <div class="figure"><span class="muted">{t('文件')}</span><strong>{count(summary.files)}</strong></div>
-    <div class="figure"><span class="muted">{t('文件夹')}</span><strong>{count(summary.directories)}</strong></div>
-    <div class="figure"><span class="muted">{t('用时')}</span><strong>{seconds(summary.seconds)}</strong></div>
+    <div class="figure"><span class="caption">{t('文件')}</span><strong class="dot">{count(summary.files)}</strong></div>
+    <div class="figure"><span class="caption">{t('文件夹')}</span><strong class="dot">{count(summary.directories)}</strong></div>
+    <div class="figure"><span class="caption">{t('用时')}</span><strong class="dot">{seconds(summary.seconds)}</strong></div>
     {#if summary.gapCount > 0}
       <button class="gaps" onclick={() => (showGaps = !showGaps)}>
-        {t('{n} 处读不到', { n: count(summary.gapCount) })} {showGaps ? '▴' : '▾'}
+        <span aria-hidden="true">●</span> {t('{n} 处读不到', { n: count(summary.gapCount) })} {showGaps ? '▴' : '▾'}
       </button>
     {/if}
     <div class="actions">
@@ -114,7 +114,7 @@
 
   <div class="split">
     <section class="tree" aria-label={t('目录树')}>
-      <div class="tree-head muted"><span>{t('名称')}</span><span>{t('占用')}</span><span>{t('占比')}</span></div>
+      <div class="tree-head caption"><span>{t('名称')}</span><span>{t('占用')}</span><span>{t('占比')}</span></div>
       <div class="rows">
         <TreeRow node={rootNode} depth={0} parentSize={summary.allocationSize} {selected} {expanded} onSelect={select} onToggle={toggle} />
       </div>
@@ -122,7 +122,7 @@
     <section class="map">
       <div class="crumbs">
         {#each crumbs as crumb, i}
-          {#if i > 0}<span class="muted">›</span>{/if}
+          {#if i > 0}<span class="sep">›</span>{/if}
           <button class="crumb" class:current={crumb === selected} onclick={() => select(crumb)}>
             {i === 0 ? crumb : crumb.slice(crumb.lastIndexOf('\\') + 1)}
           </button>
@@ -145,33 +145,48 @@
   .summary {
     display: flex;
     align-items: center;
-    gap: 32px;
+    gap: 10px 20px;
+    flex-wrap: wrap;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: 18px;
     box-shadow: var(--shadow);
-    padding: 12px 18px;
+    padding: 12px 20px;
   }
   .figure {
     display: flex;
     flex-direction: column;
   }
-  .figure span {
-    font-size: 12px;
+  .figure .caption,
+  .figure strong,
+  .summary button {
+    white-space: nowrap;
   }
   .figure strong {
-    font-size: 20px;
-    font-variant-numeric: tabular-nums;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1.2;
   }
   .gaps {
-    background: var(--warn-soft);
+    background: transparent;
     color: var(--warn);
-    border-color: transparent;
+    border-color: var(--warn);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .gaps span {
+    font-size: 8px;
+  }
+  .sep {
+    color: var(--muted);
   }
   .actions {
     margin-left: auto;
     display: flex;
     gap: 8px;
+    flex-wrap: nowrap;
   }
   .unlisted {
     margin: -4px 4px 0;
@@ -180,7 +195,7 @@
   .gap-list {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: 18px;
     box-shadow: var(--shadow);
     padding: 4px 18px 8px;
     max-height: 30vh;
@@ -210,17 +225,17 @@
   .map {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: 18px;
     box-shadow: var(--shadow);
     min-height: 0;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
   }
   .tree-head {
     display: grid;
     grid-template-columns: 1fr 80px 120px;
-    padding: 8px 12px;
-    font-size: 12px;
+    padding: 10px 12px;
     border-bottom: 1px solid var(--border);
   }
   .rows {
@@ -250,6 +265,6 @@
   }
   .crumb.current {
     font-weight: 600;
-    color: var(--accent);
+    color: var(--text);
   }
 </style>

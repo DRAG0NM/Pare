@@ -129,7 +129,7 @@
     </p>
     {#if exportError}<p class="bad small">{bt(exportError)}</p>{/if}
     <h3>{t('AI 服务')}</h3>
-    {#if intro}<p class="intro">{intro}</p>{/if}
+    {#if intro}<p class="intro"><span class="led"></span><span>{intro}</span></p>{/if}
     {#if !loaded}
       <p class="muted">{bt(error) || t('正在读取…')}</p>
     {:else}
@@ -183,6 +183,7 @@
     display: grid;
     place-items: center;
     background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(6px);
     animation: fade-in 0.15s;
   }
   .modal {
@@ -191,7 +192,7 @@
     overflow: auto;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: 18px;
     padding: 16px 20px;
     box-shadow: var(--shadow-lg);
     animation: pop-in 0.22s var(--ease);
@@ -238,28 +239,21 @@
   }
   .seg {
     display: inline-flex;
+    gap: 4px;
     font-weight: 400;
   }
   .seg button {
     padding: 3px 12px;
     font-size: 12px;
-    border-radius: 0;
-  }
-  .seg button:first-child {
-    border-radius: 6px 0 0 6px;
-  }
-  .seg button:last-child {
-    border-radius: 0 6px 6px 0;
-  }
-  .seg button + button {
-    margin-left: -1px;
+    background: transparent;
+    border-color: var(--border-strong);
+    color: var(--muted);
   }
   .seg button.on {
-    background: var(--accent-soft);
+    background: var(--accent);
     border-color: var(--accent);
-    color: var(--accent);
+    color: var(--on-accent);
     font-weight: 600;
-    position: relative;
   }
   label {
     display: flex;
@@ -270,19 +264,16 @@
     font-size: 12px;
     font-weight: 600;
   }
-  input,
-  select.lang {
-    padding: 3px 8px;
-    font-size: 12px;
-    font-weight: 400;
-  }
   select {
     font: inherit;
+    font-size: 13px;
     color: inherit;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 6px 8px;
+    border-radius: 10px;
+    padding: 0 10px;
+    height: 34px;
+    box-sizing: border-box;
     user-select: text;
   }
   .small {
@@ -305,7 +296,7 @@
     margin: 0;
   }
   .ok {
-    color: var(--safe);
+    color: var(--text);
   }
   .bad {
     color: var(--warn);
@@ -324,8 +315,15 @@
   }
   .intro {
     margin: 0;
-    padding: 8px 10px;
-    background: var(--accent-soft);
-    border-radius: 6px;
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .intro .led {
+    flex: none;
+    margin-top: 6px;
   }
 </style>

@@ -20,7 +20,7 @@
 
   const kindText: Record<string, string> = { quarantine: '移入隔离区', template: '受支持动作', command: '命令', config: '修改配置', manual: '手动操作' }
   const statusText: Record<ActionResult['status'], string> = { running: '执行中', done: '完成', partial: '部分完成', skipped: '未执行', failed: '失败' }
-  const statusIcon: Record<ActionResult['status'], string> = { running: '…', done: '✓', partial: '◐', skipped: '–', failed: '✗' }
+  const statusIcon: Record<ActionResult['status'], string> = { running: '…', done: '●', partial: '◐', skipped: '○', failed: '●' }
 
   let purge = $state<'idle' | 'ask' | 'busy' | 'done'>('idle')
   let purgeFreed = $state(0)
@@ -66,22 +66,23 @@
 
   <div class="stats">
     <section class="stat hero">
-      <span class="label">{t('{drive} 盘可用空间', { drive: report.volume.replace('\\', '') })}</span>
+      <span class="caption">{t('{drive} 盘可用空间', { drive: report.volume.replace('\\', '') })}</span>
       {#if known}
-        <strong class="big">{bytes(shownFree.current)}</strong>
-        <span class="small">
-          {t('清理前 {size}', { size: bytes(report.freeBefore) })}
-          {#if gained > 0}<span class="gain">+{bytes(shownGain.current)}</span>{:else}<span class="muted">{t('· 暂时没有变化')}</span>{/if}
-        </span>
+        <div class="flow">
+          <span class="dot before">{bytes(report.freeBefore)}</span>
+          <span class="arrow">→</span>
+          <strong class="dot after">{bytes(shownFree.current)}</strong>
+        </div>
+        {#if gained > 0}<strong class="dot freed">+{bytes(shownGain.current)}</strong>{:else}<span class="muted small">{t('· 暂时没有变化')}</span>{/if}
       {:else}
-        <strong class="big">—</strong>
+        <strong class="dot after">—</strong>
         <span class="muted small">{t('读不到磁盘空间')}</span>
       {/if}
     </section>
 
     <section class="stat">
-      <span class="label">{t('隔离中')}</span>
-      <strong class="big" class:dim={waiting === 0}>{bytes(waiting)}</strong>
+      <span class="caption">{t('隔离中')}</span>
+      <strong class="dot q" class:dim={waiting === 0}>{bytes(waiting)}</strong>
       {#if purge === 'done'}
         <span class="small gain">{t('已永久清空，释放 {size}', { size: bytes(purgeFreed) })}</span>
       {:else if report.manifests.length === 0}
@@ -94,14 +95,14 @@
         </div>
       {:else}
         <span class="muted small">{t('文件还在盘上，清空后才会释放')}</span>
-        <div class="row"><button class="primary" onclick={() => (purge = 'ask')}>{t('立即清空这批')}</button></div>
+        <div class="row"><button class="purge" onclick={() => (purge = 'ask')}>{t('立即清空这批')}</button></div>
       {/if}
       {#if purgeError}<span class="warn small">{bt(purgeError)}</span>{/if}
     </section>
 
     <section class="stat">
-      <span class="label">{t('处理结果')}</span>
-      <strong class="big">{counts.ok + counts.partial}<span class="unit">{t('/ {n} 项', { n: report.results.length })}</span></strong>
+      <span class="caption">{t('处理结果')}</span>
+      <strong class="dot q">{counts.ok + counts.partial}<span class="unit mono">{t('/ {n} 项', { n: report.results.length })}</span></strong>
       <span class="small muted">{t('完成 {ok} · 部分 {partial} · 未完成 {rest}', { ok: counts.ok, partial: counts.partial, rest: counts.rest })}</span>
     </section>
   </div>
@@ -203,14 +204,28 @@
     font-size: 20px;
   }
   h3 {
-    margin: 0 0 8px;
-    font-size: 14px;
+    margin: 0 0 10px;
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
   }
   .small {
     font-size: 12px;
   }
   .warn {
     color: var(--warn);
+  }
+  button.purge {
+    background: transparent;
+    border: 1px solid var(--warn);
+    color: var(--warn);
+  }
+  button.purge:hover:not(:disabled) {
+    background: var(--warn-soft);
+    border-color: var(--warn);
   }
   .gain {
     color: var(--accent);
@@ -221,18 +236,17 @@
   }
   .stats {
     display: grid;
-    grid-template-columns: 1.3fr 1fr 1fr;
+    grid-template-columns: 1.7fr 1fr 1fr;
     gap: 12px;
   }
   .stat {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 14px 16px;
+    gap: 6px;
+    padding: 16px 18px;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
+    border-radius: 18px;
     animation: fade-up 0.35s var(--ease) both;
   }
   .stat:nth-child(2) {
@@ -242,22 +256,40 @@
     animation-delay: 120ms;
   }
   .stat.hero {
-    background: var(--accent-soft);
-    border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+    border-color: var(--border-strong);
   }
-  .label {
-    font-size: 12px;
+  .flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    margin: 4px 0;
+  }
+  .before {
+    font-size: 36px;
+    line-height: 1;
     color: var(--muted);
   }
-  .big {
+  .arrow {
+    font-size: 22px;
+    color: var(--muted);
+  }
+  .after {
+    font-size: 44px;
+    line-height: 1;
+    font-weight: 400;
+  }
+  .freed {
     font-size: 28px;
-    line-height: 1.2;
-    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    font-weight: 400;
   }
-  .hero .big {
-    color: var(--accent);
+  .q {
+    font-size: 30px;
+    line-height: 1.1;
+    font-weight: 400;
   }
-  .big.dim {
+  .q.dim {
     color: var(--muted);
   }
   .unit {
@@ -281,9 +313,8 @@
   .panel {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 12px 14px;
+    border-radius: 18px;
+    padding: 14px 16px;
     user-select: text;
   }
   .panel > p {
@@ -298,7 +329,7 @@
     display: flex;
     gap: 10px;
     padding: 8px 0;
-    border-top: 1px solid var(--border);
+    border-top: 1px dashed var(--border-strong);
     animation: fade-up 0.3s var(--ease) both;
   }
   .results li:first-child {
@@ -306,23 +337,18 @@
   }
   .ic {
     flex: none;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    font-size: 12px;
-    background: var(--surface-2);
+    width: 16px;
+    line-height: 20px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .ic.skipped,
+  .ic.running {
     color: var(--muted);
   }
-  .ic.done {
-    background: var(--accent-soft);
-    color: var(--accent);
-  }
-  .ic.partial,
   .ic.failed {
-    background: var(--warn-soft);
-    color: var(--warn);
+    color: var(--signal);
   }
   .rbody {
     flex: 1;
@@ -346,9 +372,10 @@
   .tag {
     flex: none;
     font-size: 11px;
-    padding: 0 7px;
-    border-radius: 10px;
-    background: var(--surface-2);
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    background: transparent;
     color: var(--muted);
   }
   .size {
@@ -360,8 +387,9 @@
   .code {
     margin: 4px 0 0;
     padding: 6px 8px;
-    background: var(--surface-2);
-    border-radius: 4px;
+    background: var(--bg);
+    border: 1px dashed var(--border-strong);
+    border-radius: 10px;
     max-height: 140px;
     overflow: auto;
     white-space: pre-wrap;
@@ -371,8 +399,8 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 10px 0;
-    border-top: 1px solid var(--border);
+    padding: 12px 0;
+    border-top: 1px dashed var(--border-strong);
   }
   .prevent {
     display: flex;
@@ -380,7 +408,7 @@
     gap: 10px;
     padding: 8px 10px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 12px;
     background: var(--bg);
   }
   .pbody {

@@ -69,7 +69,7 @@
     </div>
     {#key index}
       <div class="body">
-        <div class="badge">{step.icon}</div>
+        <div class="badge dot">{step.icon}</div>
         <div class="text">
           <h2>{t(step.title)}</h2>
           <ul>
@@ -101,13 +101,14 @@
     display: grid;
     place-items: center;
     background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(6px);
     animation: fade-in 0.15s;
   }
   .modal {
     width: min(560px, calc(100vw - 32px));
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 18px;
     box-shadow: var(--shadow-lg);
     padding: 18px 22px 16px;
     animation: pop-in 0.22s var(--ease);
@@ -118,25 +119,25 @@
     justify-content: space-between;
   }
   .kicker {
-    font-size: 12px;
-    color: var(--accent);
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
   .dots {
     display: flex;
     gap: 6px;
   }
   .dots span {
-    width: 18px;
-    height: 4px;
-    border-radius: 2px;
-    background: var(--surface-2);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--border-strong);
     transition: background-color 0.2s;
   }
-  .dots span.done,
   .dots span.on {
-    background: var(--accent);
+    background: var(--signal);
   }
   .body {
     display: flex;
@@ -147,15 +148,12 @@
   }
   .badge {
     flex: none;
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    display: grid;
-    place-items: center;
-    font-size: 20px;
+    min-width: 44px;
+    font-family: var(--font-dot);
+    font-size: 44px;
+    line-height: 1;
     font-weight: 700;
-    background: var(--accent-soft);
-    color: var(--accent);
+    color: var(--text);
   }
   h2 {
     margin: 4px 0 10px;
@@ -171,8 +169,9 @@
   .tip {
     margin: 12px 0 0;
     padding: 8px 10px;
-    border-radius: 8px;
-    background: var(--warn-soft);
+    border-radius: 10px;
+    border: 1px solid var(--warn);
+    background: transparent;
     color: var(--warn);
     font-size: 12px;
   }

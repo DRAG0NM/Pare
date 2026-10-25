@@ -1,25 +1,34 @@
+/* Pare's look follows industrial CMF: monochrome surfaces, hairline edges, dot-matrix
+   figures, and one signal red used only where something needs attention. */
 :root {
-  --bg: #f3f5f4;
-  --surface: #ffffff;
-  --surface-2: #edf1ef;
-  --border: #dde3e0;
-  --border-strong: #c3ccc8;
-  --text: #1b2420;
-  --muted: #5f6e67;
-  --accent: #0e7d60;
-  --accent-hover: #0a6650;
-  --accent-soft: #dcf1e9;
-  --on-accent: #ffffff;
-  --safe: #2f7d3a;
-  --safe-soft: #e2f2e2;
-  --warn: #b45309;
-  --warn-soft: #fdf1e1;
-  --bar: #7fc4ae;
-  --radius: 10px;
-  --shadow: 0 1px 2px rgb(16 24 20 / 0.06), 0 1px 1px rgb(16 24 20 / 0.04);
-  --shadow-lg: 0 12px 32px rgb(16 24 20 / 0.18), 0 2px 6px rgb(16 24 20 / 0.08);
+  --bg: #ecece8;
+  --surface: #f8f8f5;
+  --surface-2: #e2e2dd;
+  --border: #d4d4ce;
+  --border-strong: #a9a9a3;
+  --text: #0c0c0c;
+  --muted: #6a6a66;
+  /* accent is ink: primary buttons, selection and active states are black on paper. */
+  --accent: #0c0c0c;
+  --accent-hover: #2e2e2e;
+  --accent-soft: #e0e0db;
+  --on-accent: #f8f8f5;
+  --signal: #d71920;
+  --safe: #0c0c0c;
+  --safe-soft: #e2e2dd;
+  --warn: #c8161d;
+  --warn-soft: #f6e0dd;
+  --bar: #0c0c0c;
+  --grid: rgb(0 0 0 / 0.07);
+  --radius: 14px;
+  --shadow: none;
+  --shadow-lg: 0 24px 60px rgb(0 0 0 / 0.18);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --font: 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI', 'PingFang SC', system-ui, sans-serif;
+  /* Labels, numbers on chips and step markers. */
+  --font-label: 'Space Mono', 'Cascadia Mono', Consolas, var(--font);
+  /* Large figures only: the dot-matrix face covers Latin letters and digits. */
+  --font-dot: 'Doto', 'Space Mono', var(--font);
   color-scheme: light;
 }
 
@@ -27,47 +36,51 @@
    the user picked dark. Keep the two blocks identical. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #111614;
-    --surface: #18201d;
-    --surface-2: #202a26;
-    --border: #2b3632;
-    --border-strong: #3b4843;
-    --text: #e3e9e6;
-    --muted: #93a19a;
-    --accent: #3cc59b;
-    --accent-hover: #62d4b0;
-    --accent-soft: #15382d;
-    --on-accent: #052a1f;
-    --safe: #74c77f;
-    --safe-soft: #1b3320;
-    --warn: #f2a65a;
-    --warn-soft: #3a2a18;
-    --bar: #2f7a63;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
-    --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.5);
+    --bg: #000000;
+    --surface: #0e0e0e;
+    --surface-2: #1b1b1b;
+    --border: #252525;
+    --border-strong: #444444;
+    --text: #f2f2f2;
+    --muted: #8d8d8d;
+    --accent: #f2f2f2;
+    --accent-hover: #ffffff;
+    --accent-soft: #1f1f1f;
+    --on-accent: #000000;
+    --signal: #ec2a31;
+    --safe: #f2f2f2;
+    --safe-soft: #1b1b1b;
+    --warn: #ff3b42;
+    --warn-soft: #2a0f10;
+    --bar: #e6e6e6;
+    --grid: rgb(255 255 255 / 0.08);
+    --shadow: none;
+    --shadow-lg: 0 24px 60px rgb(0 0 0 / 0.7);
     color-scheme: dark;
   }
 }
 
 :root[data-theme='dark'] {
-  --bg: #111614;
-  --surface: #18201d;
-  --surface-2: #202a26;
-  --border: #2b3632;
-  --border-strong: #3b4843;
-  --text: #e3e9e6;
-  --muted: #93a19a;
-  --accent: #3cc59b;
-  --accent-hover: #62d4b0;
-  --accent-soft: #15382d;
-  --on-accent: #052a1f;
-  --safe: #74c77f;
-  --safe-soft: #1b3320;
-  --warn: #f2a65a;
-  --warn-soft: #3a2a18;
-  --bar: #2f7a63;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
-  --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.5);
+  --bg: #000000;
+  --surface: #0e0e0e;
+  --surface-2: #1b1b1b;
+  --border: #252525;
+  --border-strong: #444444;
+  --text: #f2f2f2;
+  --muted: #8d8d8d;
+  --accent: #f2f2f2;
+  --accent-hover: #ffffff;
+  --accent-soft: #1f1f1f;
+  --on-accent: #000000;
+  --signal: #ec2a31;
+  --safe: #f2f2f2;
+  --safe-soft: #1b1b1b;
+  --warn: #ff3b42;
+  --warn-soft: #2a0f10;
+  --bar: #e6e6e6;
+  --grid: rgb(255 255 255 / 0.08);
+  --shadow: none;
+  --shadow-lg: 0 24px 60px rgb(0 0 0 / 0.7);
   color-scheme: dark;
 }
 
@@ -82,8 +95,11 @@ body,
   margin: 0;
 }
 
+/* The dot grid shows through the gaps between panels, like a perforated back plate. */
 body {
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: radial-gradient(circle, var(--grid) 1px, transparent 1.3px);
+  background-size: 14px 14px;
   color: var(--text);
   font: 14px/1.5 var(--font);
   -webkit-font-smoothing: antialiased;
@@ -92,12 +108,13 @@ body {
 
 button {
   font: inherit;
+  font-weight: 500;
   color: inherit;
   cursor: pointer;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   background: var(--surface);
-  border-radius: 6px;
-  padding: 6px 14px;
+  border-radius: 999px;
+  padding: 6px 16px;
   transition:
     background-color 0.15s,
     border-color 0.15s,
@@ -106,8 +123,8 @@ button {
 }
 
 button:hover:not(:disabled) {
-  border-color: var(--border-strong);
-  background-color: var(--surface-2);
+  border-color: var(--text);
+  background-color: var(--surface);
 }
 
 button:active:not(:disabled) {
@@ -115,14 +132,15 @@ button:active:not(:disabled) {
 }
 
 button:focus-visible,
-input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
 }
 
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 button.primary {
@@ -138,13 +156,27 @@ button.primary:hover:not(:disabled) {
 }
 
 input[type='text'],
-input[type='password'] {
+input[type='password'],
+input[type='search'] {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 10px;
+  user-select: text;
   transition: border-color 0.15s;
 }
 
+input::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
+
 input[type='text']:focus,
-input[type='password']:focus {
-  border-color: var(--accent);
+input[type='password']:focus,
+input[type='search']:focus {
+  border-color: var(--text);
   outline: none;
 }
 
@@ -161,12 +193,17 @@ input[type='checkbox'] {
 ::-webkit-scrollbar-thumb {
   background: var(--border-strong);
   border-radius: 5px;
-  border: 2px solid transparent;
+  border: 3px solid transparent;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+::selection {
+  background: var(--signal);
+  color: #fff;
 }
 
 .muted {
@@ -176,6 +213,39 @@ input[type='checkbox'] {
 .mono {
   font-family: 'Cascadia Mono', Consolas, monospace;
   font-size: 12px;
+}
+
+/* Small uppercase caption, the way hardware labels its ports. */
+.caption {
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Dot-matrix figure for headline numbers. */
+.dot {
+  font-family: var(--font-dot);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A small round indicator; red means it wants attention. */
+.led {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--signal);
+  flex: none;
+}
+
+/* Turns a bar into a row of dots: put it on the track, the fill inherits the mask. */
+.dotted {
+  -webkit-mask: radial-gradient(circle, #000 2.4px, transparent 2.9px) 0 50% / 7px 7px repeat-x;
+  mask: radial-gradient(circle, #000 2.4px, transparent 2.9px) 0 50% / 7px 7px repeat-x;
 }
 
 /* Shared motion. Views and list items fade up when they mount; modals scale in. */
@@ -202,6 +272,12 @@ input[type='checkbox'] {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.25;
   }
 }
 

@@ -49,14 +49,17 @@
     padding: 8px 14px;
     color: var(--muted);
   }
+  .tabs {
+    background: var(--surface);
+  }
   .tabs button:hover:not(.active) {
     background: transparent;
     color: var(--text);
   }
   .tabs button.active {
-    color: var(--accent);
+    color: var(--text);
     font-weight: 600;
-    border-bottom-color: var(--accent);
+    border-bottom-color: var(--signal);
   }
   .tabs button.help {
     margin-left: auto;

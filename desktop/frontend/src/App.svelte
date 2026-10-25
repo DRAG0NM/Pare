@@ -6,6 +6,7 @@
   import Decide from './components/Decide.svelte'
   import { backend, isMock, onEvent, type Progress, type ScanSummary } from './lib/api'
   import Home from './components/Home.svelte'
+  import Logo from './components/Logo.svelte'
   import Scanning from './components/Scanning.svelte'
   import Overview from './components/Overview.svelte'
   import AISettings from './components/AISettings.svelte'
@@ -131,17 +132,14 @@
 <div class="shell">
   <header>
     <div class="brand">
-      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-        <rect x="2" y="2" width="20" height="20" rx="6" fill="var(--accent)" />
-        <path d="M7 16.5V7.5h5.2a3.2 3.2 0 0 1 0 6.4H7" fill="none" stroke="var(--on-accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
-      Pare
+      <Logo size={22} />
+      <span class="wordmark">PARE</span>
     </div>
     <nav>
       {#each stages as stage, i}
         {#if i > 0}<span class="sep" aria-hidden="true"></span>{/if}
         <button class="stage" class:active={i === stageIndex} disabled={(i === 1 && !summary) || view === 'scanning'} onclick={() => goStage(i)} title={t(stage.hint)}>
-          <span class="step">{i + 1}</span>{t(stage.label)}
+          <span class="step">0{i + 1}</span>{t(stage.label)}{#if i === stageIndex}<span class="led" aria-hidden="true"></span>{/if}
         </button>
       {/each}
     </nav>
@@ -218,64 +216,61 @@
     display: flex;
     align-items: center;
     gap: 24px;
-    padding: 8px 20px;
+    padding: 9px 20px;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    box-shadow: var(--shadow);
     position: relative;
     z-index: 1;
   }
   .brand {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+  }
+  .wordmark {
+    font-family: var(--font-label);
     font-weight: 700;
-    font-size: 17px;
-    letter-spacing: 0.3px;
+    font-size: 15px;
+    letter-spacing: 0.32em;
   }
   nav {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
   }
   .sep {
-    width: 18px;
+    width: 14px;
     height: 1px;
-    background: var(--border-strong);
+    background: repeating-linear-gradient(90deg, var(--border-strong) 0 2px, transparent 2px 4px);
   }
   .stage {
-    border: none;
+    border: 1px solid transparent;
     background: transparent;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 5px 12px 5px 6px;
-    border-radius: 999px;
+    padding: 4px 12px;
     color: var(--muted);
     white-space: nowrap;
   }
   .stage:hover:not(:disabled) {
     color: var(--text);
+    border-color: transparent;
   }
-  .stage.active {
-    background: var(--accent-soft);
-    color: var(--accent);
+  .stage.active,
+  .stage.active:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--border-strong);
     font-weight: 600;
   }
   .step {
-    display: inline-grid;
-    place-items: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--surface-2);
-    font-size: 12px;
-    font-weight: 600;
-    transition: background-color 0.2s, color 0.2s;
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
   }
-  .stage.active .step {
-    background: var(--accent);
-    color: var(--on-accent);
+  .stage .led {
+    animation: blink 2.4s steps(1) infinite;
   }
   .right button {
     white-space: nowrap;
@@ -292,7 +287,8 @@
     z-index: 200;
     display: grid;
     place-items: center;
-    background: rgba(0, 0, 0, 0.45);
+    background: rgb(0 0 0 / 0.5);
+    backdrop-filter: blur(6px);
     animation: fade-in 0.15s;
   }
   .modal {
@@ -327,10 +323,10 @@
   .mock {
     white-space: nowrap;
     font-size: 12px;
-    color: var(--warn);
-    background: var(--warn-soft);
+    color: var(--muted);
+    border: 1px dashed var(--border-strong);
     padding: 2px 10px;
-    border-radius: 10px;
+    border-radius: 999px;
   }
   main {
     flex: 1;

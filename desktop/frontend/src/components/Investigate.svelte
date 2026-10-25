@@ -95,7 +95,8 @@
   <ol class="flow" aria-label={t('步骤')}>
     {#each flowSteps as s, i}
       <li class:on={flowStep === i + 1} class:done={flowStep > i + 1}>
-        <span class="num">{flowStep > i + 1 ? '✓' : i + 1}</span>
+        <span class="num">{flowStep > i + 1 ? '✓' : '0' + (i + 1)}</span>
+        {#if flowStep === i + 1}<span class="led"></span>{/if}
         <span class="ftext"><strong>{t(s.title)}</strong><span class="muted">{t(s.hint)}</span></span>
       </li>
     {/each}
@@ -279,31 +280,28 @@
     gap: 10px;
     padding: 8px 12px;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: 12px;
     background: var(--surface);
     min-width: 0;
     transition: border-color 0.2s, background-color 0.2s;
   }
   .flow li.on {
-    border-color: var(--accent);
-    background: var(--accent-soft);
+    border-color: var(--text);
+  }
+  .flow li .led {
+    order: 3;
+    margin-left: auto;
   }
   .num {
     flex: none;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    font-size: 12px;
-    font-weight: 700;
-    background: var(--surface-2);
+    font-family: var(--font-label);
+    font-size: 13px;
+    letter-spacing: 0.04em;
     color: var(--muted);
   }
   .flow li.on .num,
   .flow li.done .num {
-    background: var(--accent);
-    color: var(--on-accent);
+    color: var(--text);
   }
   .ftext {
     display: flex;
@@ -322,22 +320,23 @@
   }
   /* The button for the next action breathes gently until it is used. */
   .pulse {
-    animation: pulse 2.2s ease-out infinite;
+    position: relative;
   }
-  @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
-    }
-    70%,
-    100% {
-      box-shadow: 0 0 0 8px transparent;
-    }
+  .pulse::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--signal);
+    animation: blink 1.4s steps(2, jump-none) infinite;
   }
   .panel {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: var(--shadow);
     min-height: 0;
   }
   .small {
@@ -361,7 +360,7 @@
     color: inherit;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 10px;
     padding: 5px 8px;
     min-width: 0;
     user-select: text;
@@ -379,26 +378,20 @@
     min-height: 18px;
   }
   .spinner {
-    width: 12px;
-    height: 12px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
-    border: 2px solid var(--surface-2);
-    border-top-color: var(--accent);
-    animation: spin 0.9s linear infinite;
-  }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
+    background: var(--signal);
+    animation: blink 1s steps(2, jump-none) infinite;
   }
   .banner {
     display: flex;
     align-items: center;
     gap: 12px;
-    background: var(--warn-soft);
+    border: 1px solid var(--warn);
     color: var(--warn);
     padding: 6px 10px;
-    border-radius: 6px;
+    border-radius: 10px;
   }
   .main {
     flex: 1;
@@ -414,8 +407,8 @@
   .summary {
     margin: 0 0 8px;
     padding: 8px 10px;
-    background: var(--accent-soft);
-    border-radius: 6px;
+    background: var(--surface-2);
+    border-radius: 10px;
     user-select: text;
   }
   .empty {
@@ -430,16 +423,15 @@
     text-align: left;
     margin-bottom: 6px;
     padding: 9px 11px;
-    border-radius: 8px;
+    border-radius: 12px;
     animation: fade-up 0.3s var(--ease) both;
   }
   .card.muted-card {
     opacity: 0.55;
   }
   .badge.handled {
-    background: var(--surface-2);
     color: var(--muted);
-    border: 1px solid var(--border);
+    border-color: var(--border);
   }
   .depth {
     display: flex;
@@ -449,33 +441,28 @@
   }
   .seg {
     display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
   }
   .seg button {
     padding: 2px 12px;
     font-size: 12px;
-    border-radius: 0;
-  }
-  .seg button:first-child {
-    border-radius: 6px 0 0 6px;
-  }
-  .seg button:last-child {
-    border-radius: 0 6px 6px 0;
-  }
-  .seg button + button {
-    margin-left: -1px;
+    border: none;
+    background: transparent;
+    border-radius: 999px;
   }
   .seg button.on {
-    background: var(--accent-soft);
-    border-color: var(--accent);
-    color: var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
     font-weight: 600;
-    position: relative;
   }
   .card.active,
   .card.active:hover {
     background: var(--accent-soft);
-    border-color: var(--accent);
-    box-shadow: inset 3px 0 0 var(--accent);
+    border-color: var(--text);
+    box-shadow: inset 2px 0 0 var(--text);
   }
   .title {
     display: -webkit-box;
@@ -497,24 +484,16 @@
   .badge {
     font-size: 11px;
     padding: 1px 8px;
-    border-radius: 10px;
+    border-radius: 999px;
     white-space: nowrap;
-  }
-  .badge.safe {
-    background: var(--safe-soft);
-    color: var(--safe);
-  }
-  .badge.check {
-    background: var(--accent-soft);
-    color: var(--accent);
-  }
-  .badge.manual {
-    background: var(--warn-soft);
-    color: var(--warn);
-  }
-  .badge.blocked {
-    background: var(--surface-2);
+    background: transparent;
+    border: 1px solid var(--border-strong);
     color: var(--muted);
+  }
+  .badge.manual,
+  .badge.blocked {
+    border-color: var(--warn);
+    color: var(--warn);
   }
   .detail {
     display: flex;
@@ -530,8 +509,12 @@
     font-size: 17px;
   }
   h4 {
-    margin: 12px 0 4px;
-    font-size: 12px;
+    margin: 14px 0 4px;
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: var(--muted);
   }
   .text {
@@ -556,7 +539,7 @@
     padding: 8px 10px;
     margin-bottom: 6px;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 12px;
     cursor: pointer;
   }
   .action {
@@ -566,7 +549,7 @@
     border-color: var(--border-strong);
   }
   .action.on {
-    border-color: var(--accent);
+    border-color: var(--text);
     background: var(--accent-soft);
   }
   .abody {
@@ -577,7 +560,10 @@
     flex: 1;
   }
   .kind {
-    font-size: 12px;
+    font-family: var(--font-label);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: var(--muted);
   }
   .kind.warn {
@@ -586,8 +572,9 @@
   .code {
     margin: 4px 0 0;
     padding: 6px 8px;
-    background: var(--surface-2);
-    border-radius: 4px;
+    background: var(--bg);
+    border: 1px dashed var(--border-strong);
+    border-radius: 10px;
     overflow: auto;
     user-select: text;
   }
@@ -644,8 +631,12 @@
     animation: fade-in 0.2s;
   }
   .ev.found {
-    color: var(--accent);
+    color: var(--text);
     font-weight: 600;
+  }
+  .ev.found::before {
+    content: '● ';
+    color: var(--signal);
   }
   .bar {
     display: flex;
@@ -654,11 +645,14 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: var(--shadow);
     padding: 8px 16px;
   }
   .total {
-    color: var(--accent);
+    color: var(--text);
+    font-family: var(--font-dot);
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: 0.02em;
     font-variant-numeric: tabular-nums;
   }
   .next {

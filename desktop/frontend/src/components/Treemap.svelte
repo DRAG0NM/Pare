@@ -10,7 +10,6 @@
   const depth = 3
   const limit = 30
   const header = 17
-  const palette = ['#3a9a84', '#5b7fc7', '#d08a3c', '#9b6bc8', '#c75b6f', '#6e9a3d', '#4aa3c7', '#a7814e']
 
   let data = $state<NodeTree | null>(null)
   let failed = $state('')
@@ -50,15 +49,85 @@
     return node.parent ? node.parent.children!.indexOf(node) : 0
   }
 
+  // Grayscale only: tone varies by top-level group and depth, within a calm 10%-34% range.
   function fill(cell: Cell): string {
     if (cell.data.kind === 'others') return 'var(--surface-2)'
-    const color = palette[topIndex(cell) % palette.length]
-    if (cell.children) return `color-mix(in srgb, ${color} ${14 + cell.depth * 10}%, var(--surface))`
-    return `color-mix(in srgb, ${color} ${100 - (cell.depth - 1) * 12}%, #000)`
+    if (cell.children) return 'transparent'
+    const tones = [14, 26, 18, 30, 22, 34, 12, 28]
+    const p = Math.max(10, Math.min(34, tones[topIndex(cell) % tones.length] - (cell.depth - 1) * 2))
+    return `color-mix(in srgb, var(--text) ${p}%, var(--surface))`
   }
 
   function clickable(cell: Cell): boolean {
     return cell.data.kind === 'directory' && cell.data.path !== ''
+  }
+
+  // Label fitting: measure with an offscreen canvas using the CSS font of each label class.
+  let box: HTMLDivElement | undefined
+  let ctx: CanvasRenderingContext2D | null | undefined
+  let fonts: Record<string, { font: string; spacing: number; upper: boolean }> | undefined
+  const widths = new Map<string, number>()
+
+  function setup(): boolean {
+    if (fonts) return !!ctx
+    if (!box) return false
+    ctx = document.createElement('canvas').getContext('2d')
+    const cs = getComputedStyle(box)
+    const label = cs.getPropertyValue('--font-label').trim() || cs.fontFamily
+    fonts = {
+      group: { font: `11px ${label}`, spacing: 11 * 0.04, upper: true },
+      leaf: { font: `12px ${cs.fontFamily}`, spacing: 0, upper: false },
+      small: { font: `11px ${cs.fontFamily}`, spacing: 0, upper: false },
+    }
+    return !!ctx
+  }
+
+  function measure(cls: string, text: string): number {
+    const key = cls + '|' + text
+    let v = widths.get(key)
+    if (v === undefined) {
+      const f = fonts![cls]
+      ctx!.font = f.font
+      v = ctx!.measureText(f.upper ? text.toUpperCase() : text).width + f.spacing * [...text].length
+      widths.set(key, v)
+    }
+    return v
+  }
+
+  // Returns text if it fits, else the longest prefix + "…" that fits, else '' (needs at least 2 chars + "…").
+  function fit(cls: string, text: string, max: number): string {
+    if (!setup()) return text
+    if (measure(cls, text) <= max) return text
+    const chars = [...text]
+    let lo = 0
+    let hi = chars.length - 1
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1
+      if (measure(cls, chars.slice(0, mid).join('').trimEnd() + '…') <= max) lo = mid
+      else hi = mid - 1
+    }
+    return lo >= 2 ? chars.slice(0, lo).join('').trimEnd() + '…' : ''
+  }
+
+  function displayName(node: NodeTree): string {
+    return node.kind === 'others' ? bt(node.name) : node.name
+  }
+
+  function groupLabel(node: NodeTree, w: number): string {
+    const max = w - 10
+    const name = displayName(node)
+    const full = `${name} · ${bytes(node.allocationSize)}`
+    if (!setup() || measure('group', full) <= max) return full
+    return fit('group', name, max)
+  }
+
+  function leafLabel(node: NodeTree, w: number): string {
+    return fit('leaf', displayName(node), w - 12)
+  }
+
+  function sizeLabel(node: NodeTree, w: number): string {
+    const s = bytes(node.allocationSize)
+    return !setup() || measure('small', s) <= w - 12 ? s : ''
   }
 
   function move(event: MouseEvent, node: NodeTree) {
@@ -67,7 +136,7 @@
   }
 </script>
 
-<div class="treemap" bind:clientWidth={width} bind:clientHeight={height} role="presentation" onmouseleave={() => (hover = null)}>
+<div class="treemap" bind:this={box} bind:clientWidth={width} bind:clientHeight={height} role="presentation" onmouseleave={() => (hover = null)}>
   {#if failed}
     <p class="muted empty">{t('无法显示：{error}', { error: failed })}</p>
   {:else if data && data.allocationSize === 0}
@@ -76,10 +145,13 @@
     <svg {width} {height} role="img" aria-label={t('空间占用图')}>
       <defs>
         <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <line x1="0" y1="0" x2="0" y2="6" stroke="var(--warn)" stroke-width="1.5" opacity="0.45" />
+          <line x1="0" y1="0" x2="0" y2="6" stroke="var(--signal)" stroke-width="1.5" opacity="0.35" />
+        </pattern>
+        <pattern id="dots" width="5" height="5" patternUnits="userSpaceOnUse">
+          <circle cx="2.5" cy="2.5" r="0.7" fill="var(--text)" opacity="0.14" />
         </pattern>
       </defs>
-      {#each cells as cell (cell.data.path + '|' + cell.data.name + '|' + cell.depth)}
+      {#each cells as cell, i (cell.data.path + '|' + cell.data.name + '|' + cell.depth)}
         {@const w = cell.x1 - cell.x0}
         {@const h = cell.y1 - cell.y0}
         <g
@@ -91,16 +163,25 @@
           onkeydown={() => {}}
           onmousemove={(e) => move(e, cell.data)}
         >
-          <rect width={w} height={h} rx="2" fill={fill(cell)} stroke="var(--surface)" stroke-width="1" />
+          <rect class="base" width={w} height={h} rx="2" fill={fill(cell)} stroke={cell.children ? 'var(--border-strong)' : 'var(--surface)'} stroke-width="1" />
+          {#if !cell.children && cell.data.kind !== 'others'}
+            <rect width={w} height={h} rx="2" fill="url(#dots)" pointer-events="none" />
+          {/if}
           {#if cell.data.incomplete || cell.data.kind === 'others'}
             <rect width={w} height={h} rx="2" fill="url(#hatch)" />
           {/if}
-          {#if cell.children && w > 40}
-            <text x="5" y="12.5" class="group">{cell.data.kind === 'others' ? bt(cell.data.name) : cell.data.name} · {bytes(cell.data.allocationSize)}</text>
-          {:else if !cell.children && w > 56 && h > 30}
-            <text x="6" y="16" class="leaf">{cell.data.kind === 'others' ? bt(cell.data.name) : cell.data.name}</text>
-            <text x="6" y="30" class="leaf small">{bytes(cell.data.allocationSize)}</text>
-          {/if}
+          <clipPath id="clip-{i}"><rect width={w} height={h} /></clipPath>
+          <g clip-path="url(#clip-{i})">
+            {#if cell.children && w > 40}
+              {@const label = groupLabel(cell.data, w)}
+              {#if label}<text x="5" y="12.5" class="group">{label}</text>{/if}
+            {:else if !cell.children && w > 56 && h > 30}
+              {@const name = leafLabel(cell.data, w)}
+              {@const size = sizeLabel(cell.data, w)}
+              {#if name}<text x="6" y="16" class="leaf">{name}</text>{/if}
+              {#if size}<text x="6" y="30" class="leaf small">{size}</text>{/if}
+            {/if}
+          </g>
         </g>
       {/each}
     </svg>
@@ -130,8 +211,9 @@
   g.clickable {
     cursor: pointer;
   }
-  g.clickable:hover > rect:first-child {
-    filter: brightness(1.08);
+  g.clickable:hover > rect.base {
+    stroke: var(--signal);
+    stroke-width: 1.5px;
   }
   text {
     pointer-events: none;
@@ -139,10 +221,13 @@
   }
   .group {
     fill: var(--text);
-    font-weight: 600;
+    font-family: var(--font-label);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
   .leaf {
-    fill: #fff;
+    fill: var(--text);
   }
   .small {
     font-size: 11px;
@@ -154,9 +239,9 @@
     pointer-events: none;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 10px;
     padding: 8px 10px;
-    box-shadow: 0 4px 14px rgb(0 0 0 / 0.12);
+    box-shadow: var(--shadow-lg);
     font-size: 12px;
     word-break: break-all;
   }
