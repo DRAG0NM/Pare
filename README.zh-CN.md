@@ -14,6 +14,11 @@
   <img alt="Svelte" src="https://img.shields.io/badge/Svelte-UI-FF3E00?style=flat-square&logo=svelte&logoColor=white">
 </p>
 
+<p align="center">
+  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.2.0/Pare-0.2.0-win-x64.zip"><img alt="下载 Windows 版" src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD%20Windows%20%E7%89%88-v0.2.0%20%E9%A2%84%E8%A7%88%E7%89%88-0e7d60?style=for-the-badge&logo=windows&logoColor=white"></a>
+</p>
+<p align="center"><sub>便携压缩包 · 5 MB · 免安装 · <a href="https://github.com/DRAG0NM/Pare/releases/tag/v0.2.0">发布说明与校验值</a></sub></p>
+
 常见的清理软件清的是每台电脑都有的缓存。真正让 C 盘越来越满的，往往是只属于这台电脑的问题：更新器一遍遍重复下载同一个几百 MB 的安装包，WSL 虚拟磁盘只增不减，配置写错了位置、一直没生效，还有为这台电脑永远用不上的平台准备的原生二进制。
 
 **Pare 让 AI 去调查这类浪费。** 它读扫描结果，打开需要辨认的文件，核对已安装的软件和系统状态，然后把每个问题讲清楚：是什么、为什么会出现、会不会再长出来、可以怎么处理。你看过具体的文件或命令并确认之前，磁盘上什么都不会改动；文件类的清理先移入隔离区，随时可以撤回。
@@ -47,7 +52,7 @@
 
 ## 开始使用
 
-1. 从 [Releases](https://github.com/DRAG0NM/Pare/releases) 下载 `pare-desktop.exe`。它是单个可执行文件，不需要安装。
+1. 下载 [Pare-0.2.0-win-x64.zip](https://github.com/DRAG0NM/Pare/releases/download/v0.2.0/Pare-0.2.0-win-x64.zip)，解压到任意位置即可使用，不需要安装。单独的 `pare-desktop.exe` 和 SHA-256 校验值在 [发布页](https://github.com/DRAG0NM/Pare/releases/tag/v0.2.0)。
 2. 右键选择 **以管理员身份运行**，扫描结果才完整。不以管理员身份运行时，只对系统开放的文件夹会显示为读不到。
 3. 选择一个磁盘。第一次进入「清理」时，Pare 会请你填写一个兼容 OpenAI 接口的 API Key。默认是 DeepSeek，也可以选通义千问、Kimi、智谱、OpenAI 或自定义地址。
 4. 开始深挖，查看发现，为每一条选好处理方案，然后确认执行。

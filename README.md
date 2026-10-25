@@ -14,6 +14,11 @@
   <img alt="Svelte" src="https://img.shields.io/badge/Svelte-UI-FF3E00?style=flat-square&logo=svelte&logoColor=white">
 </p>
 
+<p align="center">
+  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.2.0/Pare-0.2.0-win-x64.zip"><img alt="Download for Windows" src="https://img.shields.io/badge/Download%20for%20Windows-v0.2.0%20preview-0e7d60?style=for-the-badge&logo=windows&logoColor=white"></a>
+</p>
+<p align="center"><sub>Portable zip · 5 MB · no installer · <a href="https://github.com/DRAG0NM/Pare/releases/tag/v0.2.0">release notes and checksums</a></sub></p>
+
 Commercial cleaners clear the caches everyone has. The space that actually goes missing is usually specific to one machine: an updater that downloads the same 300 MB installer over and over, a WSL disk that grows but never shrinks, a setting that was written to the wrong section and silently ignored, native binaries for platforms this PC will never run.
 
 **Pare sends an AI investigator after that kind of waste.** It reads the scan, opens the files it needs, cross-checks installed programs and system state, and explains each problem: what it is, why it happened, whether it will come back, and what you can do about it. Nothing changes on disk until you have seen the exact items or commands and confirmed them, and file cleanups go to a quarantine you can undo.
@@ -47,7 +52,7 @@ Commercial cleaners clear the caches everyone has. The space that actually goes 
 
 ## Getting started
 
-1. Download `pare-desktop.exe` from the [latest release](https://github.com/DRAG0NM/Pare/releases). It is a single portable executable; there is nothing to install.
+1. Download [Pare-0.2.0-win-x64.zip](https://github.com/DRAG0NM/Pare/releases/download/v0.2.0/Pare-0.2.0-win-x64.zip) and extract it anywhere. It is portable; there is nothing to install. The bare `pare-desktop.exe` and SHA-256 checksums are on the [release page](https://github.com/DRAG0NM/Pare/releases/tag/v0.2.0).
 2. Right-click it and choose **Run as administrator** for a complete scan. Without elevation, folders that only SYSTEM can read are listed as unreadable.
 3. Pick a drive. When you open the clean stage for the first time, Pare asks for an API key from an OpenAI-compatible provider. DeepSeek is preselected; Qwen, Kimi, Zhipu, OpenAI and custom endpoints are also available.
 4. Start a deep dive, review the findings, choose an option for each, and confirm.
