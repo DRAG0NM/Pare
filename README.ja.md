@@ -7,15 +7,15 @@
 </p>
 
 <p align="center">
-  <img alt="プラットフォーム" src="https://img.shields.io/badge/platform-Windows%2011-0e7d60?style=flat-square">
-  <img alt="バージョン" src="https://img.shields.io/badge/version-0.3.0--beta-3cc59b?style=flat-square">
-  <img alt="ライセンス" src="https://img.shields.io/badge/license-MIT-2b3632?style=flat-square">
-  <img alt="Go" src="https://img.shields.io/badge/Go-core-00ADD8?style=flat-square&logo=go&logoColor=white">
-  <img alt="Svelte" src="https://img.shields.io/badge/Svelte-UI-FF3E00?style=flat-square&logo=svelte&logoColor=white">
+  <img alt="プラットフォーム" src="https://img.shields.io/badge/platform-Windows%2011-0c0c0c?style=flat-square&labelColor=1b1b1b">
+  <img alt="バージョン" src="https://img.shields.io/badge/version-0.3.0--beta-3a3a3a?style=flat-square&labelColor=1b1b1b">
+  <img alt="ライセンス" src="https://img.shields.io/badge/license-MIT-3a3a3a?style=flat-square&labelColor=1b1b1b">
+  <img alt="Go" src="https://img.shields.io/badge/Go-core-0c0c0c?style=flat-square&labelColor=1b1b1b&logo=go&logoColor=white">
+  <img alt="Svelte" src="https://img.shields.io/badge/Svelte-UI-0c0c0c?style=flat-square&labelColor=1b1b1b&logo=svelte&logoColor=white">
 </p>
 
 <p align="center">
-  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.3.0/Pare-0.3.0-win-x64.zip"><img alt="Windows 版をダウンロード" src="https://img.shields.io/badge/Windows%20%E7%89%88%E3%82%92%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%89-v0.3.0%20%E3%83%97%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC-0e7d60?style=for-the-badge&logo=windows&logoColor=white"></a>
+  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.3.0/Pare-0.3.0-win-x64.zip"><img alt="Windows 版をダウンロード" src="https://img.shields.io/badge/Windows%20%E7%89%88%E3%82%92%E3%83%80%E3%82%A6%E3%83%B3%E3%83%AD%E3%83%BC%E3%83%89-v0.3.0%20%E3%83%97%E3%83%AC%E3%83%93%E3%83%A5%E3%83%BC-d71920?style=for-the-badge&labelColor=0c0c0c&logo=windows&logoColor=white"></a>
 </p>
 <p align="center"><sub>ポータブル zip · 5 MB · インストーラー不要 · <a href="https://github.com/DRAG0NM/Pare/releases/tag/v0.3.0">リリースノートとチェックサム</a></sub></p>
 

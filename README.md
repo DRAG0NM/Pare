@@ -7,15 +7,15 @@
 </p>
 
 <p align="center">
-  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2011-0e7d60?style=flat-square">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.3.0--beta-3cc59b?style=flat-square">
-  <img alt="License" src="https://img.shields.io/badge/license-MIT-2b3632?style=flat-square">
-  <img alt="Go" src="https://img.shields.io/badge/Go-core-00ADD8?style=flat-square&logo=go&logoColor=white">
-  <img alt="Svelte" src="https://img.shields.io/badge/Svelte-UI-FF3E00?style=flat-square&logo=svelte&logoColor=white">
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2011-0c0c0c?style=flat-square&labelColor=1b1b1b">
+  <img alt="Version" src="https://img.shields.io/badge/version-0.3.0--beta-3a3a3a?style=flat-square&labelColor=1b1b1b">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-3a3a3a?style=flat-square&labelColor=1b1b1b">
+  <img alt="Go" src="https://img.shields.io/badge/Go-core-0c0c0c?style=flat-square&labelColor=1b1b1b&logo=go&logoColor=white">
+  <img alt="Svelte" src="https://img.shields.io/badge/Svelte-UI-0c0c0c?style=flat-square&labelColor=1b1b1b&logo=svelte&logoColor=white">
 </p>
 
 <p align="center">
-  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.3.0/Pare-0.3.0-win-x64.zip"><img alt="Download for Windows" src="https://img.shields.io/badge/Download%20for%20Windows-v0.3.0%20preview-0e7d60?style=for-the-badge&logo=windows&logoColor=white"></a>
+  <a href="https://github.com/DRAG0NM/Pare/releases/download/v0.3.0/Pare-0.3.0-win-x64.zip"><img alt="Download for Windows" src="https://img.shields.io/badge/Download%20for%20Windows-v0.3.0%20preview-d71920?style=for-the-badge&labelColor=0c0c0c&logo=windows&logoColor=white"></a>
 </p>
 <p align="center"><sub>Portable zip · 5 MB · no installer · <a href="https://github.com/DRAG0NM/Pare/releases/tag/v0.3.0">release notes and checksums</a></sub></p>
 
