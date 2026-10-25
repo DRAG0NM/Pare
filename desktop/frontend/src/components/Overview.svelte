@@ -3,6 +3,7 @@
   import { SvelteSet } from 'svelte/reactivity'
   import { backend, type NodeView, type ScanSummary } from '../lib/api'
   import { bytes, count, gapReasons, seconds } from '../lib/format'
+  import { t } from '../lib/i18n.svelte'
   import TreeRow from './TreeRow.svelte'
   import Treemap from './Treemap.svelte'
 
@@ -63,57 +64,57 @@
 <div class="overview">
   <section class="summary">
     {#if summary.volumeUsed > 0}
-      <div class="figure"><span class="muted">{summary.root} 盘上已用</span><strong>{bytes(summary.volumeUsed)}</strong></div>
+      <div class="figure"><span class="muted">{t('{root} 盘上已用', { root: summary.root })}</span><strong>{bytes(summary.volumeUsed)}</strong></div>
     {/if}
     {#if summary.volumeUsed > 0}
-      <div class="figure" title="同一个文件的多个硬链接只算一次；下方目录树按路径计算，所以可能更大">
-        <span class="muted">扫描列出</span><strong>{bytes(summary.uniqueAllocation)}</strong>
+      <div class="figure" title={t('同一个文件的多个硬链接只算一次；下方目录树按路径计算，所以可能更大')}>
+        <span class="muted">{t('扫描列出')}</span><strong>{bytes(summary.uniqueAllocation)}</strong>
       </div>
     {:else}
-      <div class="figure"><span class="muted">{summary.root} 实际占用</span><strong>{bytes(summary.allocationSize)}</strong></div>
+      <div class="figure"><span class="muted">{t('{root} 实际占用', { root: summary.root })}</span><strong>{bytes(summary.allocationSize)}</strong></div>
     {/if}
-    <div class="figure"><span class="muted">文件</span><strong>{count(summary.files)}</strong></div>
-    <div class="figure"><span class="muted">文件夹</span><strong>{count(summary.directories)}</strong></div>
-    <div class="figure"><span class="muted">用时</span><strong>{seconds(summary.seconds)}</strong></div>
+    <div class="figure"><span class="muted">{t('文件')}</span><strong>{count(summary.files)}</strong></div>
+    <div class="figure"><span class="muted">{t('文件夹')}</span><strong>{count(summary.directories)}</strong></div>
+    <div class="figure"><span class="muted">{t('用时')}</span><strong>{seconds(summary.seconds)}</strong></div>
     {#if summary.gapCount > 0}
       <button class="gaps" onclick={() => (showGaps = !showGaps)}>
-        {count(summary.gapCount)} 处读不到 {showGaps ? '▴' : '▾'}
+        {t('{n} 处读不到', { n: count(summary.gapCount) })} {showGaps ? '▴' : '▾'}
       </button>
     {/if}
     <div class="actions">
-      <button onclick={onRescan}>重新扫描</button>
-      <button onclick={onHome}>换个位置</button>
-      {#if onDecide}<button class="primary" onclick={onDecide}>去挑选要清理的 →</button>{/if}
+      <button onclick={onRescan}>{t('重新扫描')}</button>
+      <button onclick={onHome}>{t('换个位置')}</button>
+      {#if onDecide}<button class="primary" onclick={onDecide}>{t('去挑选要清理的 →')}</button>{/if}
     </div>
   </section>
 
   {#if showUnlisted}
     <p class="unlisted muted">
-      盘上还有约 <strong>{bytes(unlisted)}</strong> 已用空间没有出现在扫描结果里，通常是系统保留存储、NTFS 元数据（如 $MFT）和卷影副本。按文件夹读取看不到这些，它们也不是普通文件，不能在这里清理。
+      {t('盘上还有约 {size} 已用空间没有出现在扫描结果里，通常是系统保留存储、NTFS 元数据（如 $MFT）和卷影副本。按文件夹读取看不到这些，它们也不是普通文件，不能在这里清理。', { size: bytes(unlisted) })}
     </p>
   {/if}
 
   {#if showGaps}
     <section class="gap-list">
       <p class="muted">
-        下列位置没有读到内容，它们的大小没有计入上面的总数，所在文件夹会标记“不完整”。{elevated
-          ? '当前已是管理员身份，这些位置可能正被系统独占或在扫描时发生了变化。'
-          : '以管理员身份运行可以读到其中大部分。'}
+        {t('下列位置没有读到内容，它们的大小没有计入上面的总数，所在文件夹会标记“不完整”。')}{elevated
+          ? t('当前已是管理员身份，这些位置可能正被系统独占或在扫描时发生了变化。')
+          : t('以管理员身份运行可以读到其中大部分。')}
       </p>
       <ul>
         {#each summary.gaps as gap}
-          <li><span class="mono">{gap.path}</span><span class="muted">{gapReasons[gap.code] ?? gap.code}</span></li>
+          <li><span class="mono">{gap.path}</span><span class="muted">{t(gapReasons[gap.code] ?? gap.code)}</span></li>
         {/each}
       </ul>
       {#if summary.gapCount > summary.gaps.length}
-        <p class="muted">只显示前 {summary.gaps.length} 处。</p>
+        <p class="muted">{t('只显示前 {n} 处。', { n: summary.gaps.length })}</p>
       {/if}
     </section>
   {/if}
 
   <div class="split">
-    <section class="tree" aria-label="目录树">
-      <div class="tree-head muted"><span>名称</span><span>占用</span><span>占比</span></div>
+    <section class="tree" aria-label={t('目录树')}>
+      <div class="tree-head muted"><span>{t('名称')}</span><span>{t('占用')}</span><span>{t('占比')}</span></div>
       <div class="rows">
         <TreeRow node={rootNode} depth={0} parentSize={summary.allocationSize} {selected} {expanded} onSelect={select} onToggle={toggle} />
       </div>
@@ -126,7 +127,7 @@
             {i === 0 ? crumb : crumb.slice(crumb.lastIndexOf('\\') + 1)}
           </button>
         {/each}
-        {#if onInvestigate}<button class="ask" onclick={() => onInvestigate(selected)}>让 AI 深挖这里</button>{/if}
+        {#if onInvestigate}<button class="ask" onclick={() => onInvestigate(selected)}>{t('让 AI 深挖这里')}</button>{/if}
       </div>
       <Treemap path={selected} onSelect={select} />
     </section>

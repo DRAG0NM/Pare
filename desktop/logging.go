@@ -99,9 +99,11 @@ func (a *App) buildLogExport() string {
 // returns the saved path, or "" when the user cancelled.
 func (a *App) ExportLog() (string, error) {
 	path, err := wails.SaveFileDialog(a.ctx, wails.SaveDialogOptions{
-		Title:           "导出日志",
+		Title: a.dialogText(map[string]string{
+			"zh-CN": "导出日志", "zh-TW": "匯出日誌", "en": "Export log", "ja": "ログをエクスポート", "fr": "Exporter le journal", "de": "Protokoll exportieren",
+		}),
 		DefaultFilename: "pare-log-" + time.Now().Format("20060102-1504") + ".txt",
-		Filters:         []wails.FileFilter{{DisplayName: "文本文件 (*.txt)", Pattern: "*.txt"}},
+		Filters:         []wails.FileFilter{{DisplayName: "*.txt", Pattern: "*.txt"}},
 	})
 	if err != nil || path == "" {
 		return "", err

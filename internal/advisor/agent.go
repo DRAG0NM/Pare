@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -51,6 +52,9 @@ type Agent struct {
 	// ResultLimit bounds how much of one tool result goes back to the model.
 	ResultLimit int
 	Emit        func(Event)
+	// Coverage, when set, lists large directories no tool call has touched yet. The agent
+	// shows them to the model once, at two thirds of the budget or when it stops early.
+	Coverage func(visited []string) []string
 }
 
 const reportFindingSchema = `{
@@ -137,6 +141,20 @@ func (a Agent) Run(ctx context.Context, system, user string) ([]Finding, error) 
 	samples := map[string]int{}
 	stepStart := map[int]int{}
 	compacted := 0
+	var visited []string
+	covered := a.Coverage == nil
+	remind := func() bool {
+		if covered {
+			return false
+		}
+		covered = true
+		blind := a.Coverage(visited)
+		if len(blind) == 0 {
+			return false
+		}
+		messages = append(messages, Message{Role: "user", Content: fmt.Sprintf(coveragePrompt, "- "+strings.Join(blind, "\n- "))})
+		return true
+	}
 	for step := 1; step <= maxSteps+wrapUpSteps; step++ {
 		if err := ctx.Err(); err != nil {
 			return findings, err
@@ -166,6 +184,10 @@ func (a Agent) Run(ctx context.Context, system, user string) ([]Finding, error) 
 		messages = append(messages, reply)
 
 		if len(reply.ToolCalls) == 0 {
+			// Stopping with budget left: check the blind spots before accepting.
+			if !wrapping && step < maxSteps-coverageReserve && remind() {
+				continue
+			}
 			emit(Event{Kind: EventMessage, Step: step, Text: reply.Content, Tokens: tokens})
 			emit(Event{Kind: EventDone, Step: step, Tokens: tokens})
 			return findings, nil
@@ -182,6 +204,7 @@ func (a Agent) Run(ctx context.Context, system, user string) ([]Finding, error) 
 					result = "参数不是合法的 JSON：" + err.Error()
 				} else {
 					finding.normalize()
+					visited = append(visited, finding.Paths...)
 					finding.ID = a.IDPrefix + "f" + strconv.Itoa(len(findings)+1)
 					findings = append(findings, finding)
 					emit(Event{Kind: EventFinding, Step: step, Finding: &finding})
@@ -191,10 +214,16 @@ func (a Agent) Run(ctx context.Context, system, user string) ([]Finding, error) 
 				result = "调查步数已用完，现在只能调用 report_finding。"
 			} else {
 				emit(Event{Kind: EventTool, Step: step, Tool: name, Args: args})
+				if path := visitedPath(args); path != "" {
+					visited = append(visited, path)
+				}
 				result = a.call(ctx, tools, name, args) + samplingNote(samples, name, args)
 				emit(Event{Kind: EventResult, Step: step, Tool: name, Text: clip(result, 2000)})
 			}
 			messages = append(messages, Message{Role: "tool", ToolCallID: call.ID, Content: clip(result, limit)})
+		}
+		if !wrapping && step == maxSteps*2/3 {
+			remind()
 		}
 		if !nudged && !wrapping && len(findings) == 0 && step >= maxSteps*6/10 {
 			nudged = true
@@ -205,6 +234,9 @@ func (a Agent) Run(ctx context.Context, system, user string) ([]Finding, error) 
 	emit(Event{Kind: EventDone, Tokens: tokens})
 	return findings, nil
 }
+
+// coverageReserve is the least budget left for an early-stop coverage check to be worth it.
+const coverageReserve = 5
 
 // wrapUpSteps are extra rounds after MaxSteps in which only report_finding is offered.
 const wrapUpSteps = 6

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { SvelteSet } from 'svelte/reactivity'
+  import { t } from '../lib/i18n.svelte'
   import Investigate from './Investigate.svelte'
   import RuleCandidates from './RuleCandidates.svelte'
 
@@ -8,14 +9,16 @@
     onBack,
     root,
     onOpenSettings,
+    onGuide,
     tab = $bindable('ai'),
-  }: { selection: SvelteSet<string>; onBack: () => void; root: string; onOpenSettings: () => void; tab?: 'ai' | 'rules' } = $props()
+  }: { selection: SvelteSet<string>; onBack: () => void; root: string; onOpenSettings: () => void; onGuide: () => void; tab?: 'ai' | 'rules' } = $props()
 </script>
 
 <div class="decide-page">
   <div class="tabs" role="tablist">
-    <button role="tab" aria-selected={tab === 'ai'} class:active={tab === 'ai'} onclick={() => (tab = 'ai')}>AI 深挖</button>
-    <button role="tab" aria-selected={tab === 'rules'} class:active={tab === 'rules'} onclick={() => (tab = 'rules')}>常规清理</button>
+    <button role="tab" aria-selected={tab === 'ai'} class:active={tab === 'ai'} onclick={() => (tab = 'ai')}>{t('AI 深挖')}</button>
+    <button role="tab" aria-selected={tab === 'rules'} class:active={tab === 'rules'} onclick={() => (tab = 'rules')}>{t('常规清理')}</button>
+    <button class="help" onclick={onGuide} title={t('怎么使用清理')}>? {t('使用说明')}</button>
   </div>
   <div class="body">
     {#if tab === 'ai'}
@@ -54,6 +57,11 @@
     color: var(--accent);
     font-weight: 600;
     border-bottom-color: var(--accent);
+  }
+  .tabs button.help {
+    margin-left: auto;
+    font-size: 12px;
+    border-bottom: none;
   }
   .body {
     flex: 1;

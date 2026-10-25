@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { onLocaleChange, t } from './lib/i18n.svelte'
+  import { bt } from './lib/backendText'
   import { SvelteSet } from 'svelte/reactivity'
   import Decide from './components/Decide.svelte'
   import { backend, isMock, onEvent, type Progress, type ScanSummary } from './lib/api'
@@ -10,6 +12,7 @@
   import UndoPage from './components/UndoPage.svelte'
   import ConfirmExecution from './components/ConfirmExecution.svelte'
   import CleanReport from './components/CleanReport.svelte'
+  import CleanGuide from './components/CleanGuide.svelte'
   import { exec, initExecution, setRulesDoneHandler, setSummaryHandler } from './lib/execution.svelte'
   import { answerConsent, initInvestigation, inv, resetInvestigation, startInvestigation } from './lib/investigation.svelte'
 
@@ -25,6 +28,16 @@
   let showSettings = $state(false)
   let settingsIntro = $state('')
   let autoPrompted = false
+  let showGuide = $state(false)
+  let guidePending = false
+
+  // The clean-page walkthrough opens once, unless the user unticked "don't show again".
+  function maybeGuide() {
+    try {
+      if (localStorage.getItem('pare.guide.clean') === 'seen') return
+    } catch {}
+    showGuide = true
+  }
 
   const introText = '要让 AI 帮你找出这台电脑上的空间浪费，需要先填写一个 AI 服务的 API Key。推荐 DeepSeek：注册后在控制台创建 Key，粘贴到下面即可。'
 
@@ -35,11 +48,12 @@
       .GetAISettings()
       .then((s) => {
         if (!s.hasKey) {
-          settingsIntro = introText
+          settingsIntro = t(introText)
           showSettings = true
-        }
+          guidePending = true
+        } else maybeGuide()
       })
-      .catch(() => {})
+      .catch(() => maybeGuide())
   })
 
   function openSettings() {
@@ -54,6 +68,7 @@
   }
 
   onMount(() => {
+    onLocaleChange((locale) => backend.SetLanguage(locale).catch(() => {}))
     initInvestigation()
     initExecution()
     setRulesDoneHandler(() => selection.clear())
@@ -125,24 +140,24 @@
     <nav>
       {#each stages as stage, i}
         {#if i > 0}<span class="sep" aria-hidden="true"></span>{/if}
-        <button class="stage" class:active={i === stageIndex} disabled={(i === 1 && !summary) || view === 'scanning'} onclick={() => goStage(i)} title={stage.hint}>
-          <span class="step">{i + 1}</span>{stage.label}
+        <button class="stage" class:active={i === stageIndex} disabled={(i === 1 && !summary) || view === 'scanning'} onclick={() => goStage(i)} title={t(stage.hint)}>
+          <span class="step">{i + 1}</span>{t(stage.label)}
         </button>
       {/each}
     </nav>
     <div class="right">
-      {#if isMock}<span class="mock">演示数据（浏览器预览）</span>{/if}
-      <button onclick={openSettings}>设置</button>
+      {#if isMock}<span class="mock">{t('演示数据（浏览器预览）')}</span>{/if}
+      <button onclick={openSettings}>{t('设置')}</button>
     </div>
   </header>
 
   <main>
     {#if view === 'home'}
-      <Home onScan={scan} {error} />
+      <Home onScan={scan} error={bt(error)} />
     {:else if view === 'scanning'}
       <Scanning {target} {progress} onCancel={() => backend.CancelScan()} />
     {:else if view === 'decide'}
-      <Decide {selection} bind:tab={decideTab} root={summary?.root ?? target} onOpenSettings={openSettings} onBack={() => (view = 'overview')} />
+      <Decide {selection} bind:tab={decideTab} root={summary?.root ?? target} onOpenSettings={openSettings} onGuide={() => (showGuide = true)} onBack={() => (view = 'overview')} />
     {:else if view === 'report' && exec.summary}
       <CleanReport
         report={exec.summary}
@@ -161,7 +176,17 @@
 </div>
 
 {#if showSettings}
-  <AISettings intro={settingsIntro} onClose={() => (showSettings = false)} />
+  <AISettings
+    intro={settingsIntro}
+    onClose={() => {
+      showSettings = false
+      if (guidePending) (guidePending = false), maybeGuide()
+    }}
+  />
+{/if}
+
+{#if showGuide}
+  <CleanGuide onClose={() => (showGuide = false)} />
 {/if}
 
 {#if exec.phase !== 'idle'}
@@ -170,14 +195,14 @@
 
 {#if inv.pendingConsent}
   <div class="backdrop">
-    <div class="modal" role="alertdialog" aria-modal="true" aria-label="AI 请求读取文件">
-      <h3>AI 想读取一个敏感文件的内容</h3>
+    <div class="modal" role="alertdialog" aria-modal="true" aria-label={t('AI 请求读取文件')}>
+      <h3>{t('AI 想读取一个敏感文件的内容')}</h3>
       <p class="mono path" title={inv.pendingConsent.path}>{inv.pendingConsent.path}</p>
-      <p>{inv.pendingConsent.reason}</p>
-      <p class="muted">内容会发送给 AI 服务商。拒绝后 AI 只能根据文件名和大小判断。</p>
+      <p>{bt(inv.pendingConsent.reason)}</p>
+      <p class="muted">{t('内容会发送给 AI 服务商。拒绝后 AI 只能根据文件名和大小判断。')}</p>
       <div class="buttons">
-        <button onclick={() => answerConsent(false)}>拒绝</button>
-        <button class="primary" onclick={() => answerConsent(true)}>允许这一次</button>
+        <button onclick={() => answerConsent(false)}>{t('拒绝')}</button>
+        <button class="primary" onclick={() => answerConsent(true)}>{t('允许这一次')}</button>
       </div>
     </div>
   </div>

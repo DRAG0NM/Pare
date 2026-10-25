@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> · <b>简体中文</b>
+  <a href="README.md">English</a> · <b>简体中文</b> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a>
 </p>
 
 <p align="center">
@@ -57,6 +57,8 @@
 3. 选择一个磁盘。第一次进入「清理」时，Pare 会请你填写一个兼容 OpenAI 接口的 API Key。默认是 DeepSeek，也可以选通义千问、Kimi、智谱、OpenAI 或自定义地址。
 4. 开始深挖，查看发现，为每一条选好处理方案，然后确认执行。
 
+**界面语言。** 界面提供简体中文、繁体中文、英文、日文、法文和德文六种语言，可在「设置」中切换；AI 也会用所选语言撰写发现。
+
 **系统要求。** Windows 11 x64（已测试）。装有 [WebView2 运行时](https://developer.microsoft.com/microsoft-edge/webview2/) 的 Windows 10 理论上可以运行，但没有测试过。程序暂时没有代码签名，第一次打开时 SmartScreen 可能会要求确认。
 
 **时间和费用。** 在开发机上，一次标准档深挖约两分钟，消耗 130 万到 150 万 tokens。DeepSeek 有缓存命中折扣，五次运行一共花了 ¥0.73，平均每次约 ¥0.15。更深的档位用时更长。
@@ -93,7 +95,6 @@
 - 模型判断“某个文件是否仍被程序需要”时不够稳定。标为「需谨慎」的项目值得多看一眼；移入隔离区后仍可恢复。
 - 模板和命令执行后，Pare 无法撤回。请仔细阅读确认框。
 - 目录枚举看不到 NTFS 元数据（`$MFT` 等）和系统保留存储，所以整盘扫描列出的总量会小于已用空间。WizTree 这类直接读 MFT 的工具能看到这部分。
-- 界面目前只有简体中文。
 
 ## 从源码构建
 

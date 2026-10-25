@@ -191,6 +191,7 @@ export interface Backend {
   ListHistory(): Promise<HistoryEntry[]>
   ExportLog(): Promise<string>
   OpenIssuePage(): Promise<void>
+  SetLanguage(locale: string): Promise<void>
 }
 
 const host = window as unknown as {

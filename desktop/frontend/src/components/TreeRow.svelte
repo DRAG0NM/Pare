@@ -1,6 +1,8 @@
 <script lang="ts">
   import { backend, type NodeView } from '../lib/api'
   import { bytes, percent } from '../lib/format'
+  import { t } from '../lib/i18n.svelte'
+  import { bt } from '../lib/backendText'
   import TreeRow from './TreeRow.svelte'
 
   type Props = {
@@ -45,15 +47,15 @@
 >
   <span class="name">
     {#if node.hasChildren}
-      <button class="toggle" aria-label={isOpen ? '收起' : '展开'} onclick={(e) => (e.stopPropagation(), onToggle(node.path))}>
+      <button class="toggle" aria-label={isOpen ? t('收起') : t('展开')} onclick={(e) => (e.stopPropagation(), onToggle(node.path))}>
         {isOpen ? '▾' : '▸'}
       </button>
     {:else}
       <span class="toggle"></span>
     {/if}
     <span class="icon" aria-hidden="true">{node.kind === 'directory' ? '📁' : node.kind === 'reparse' ? '🔗' : node.kind === 'others' ? '…' : '📄'}</span>
-    <span class="label" title={node.path || node.name}>{node.name}</span>
-    {#if node.incomplete}<span class="badge" title="其中有读不到的位置，大小是下限">不完整</span>{/if}
+    <span class="label" title={node.path || node.name}>{node.kind === 'others' ? bt(node.name) : node.name}</span>
+    {#if node.incomplete}<span class="badge" title={t('其中有读不到的位置，大小是下限')}>{t('不完整')}</span>{/if}
   </span>
   <span class="size">{bytes(node.allocationSize)}</span>
   <span class="share">
@@ -64,9 +66,9 @@
 
 {#if isOpen}
   {#if failed}
-    <div class="row muted" style:padding-left="{24 + depth * 16}px">读取失败：{failed}</div>
+    <div class="row muted" style:padding-left="{24 + depth * 16}px">{t('读取失败：{error}', { error: failed })}</div>
   {:else if children === null}
-    <div class="row muted" style:padding-left="{24 + depth * 16}px">载入中…</div>
+    <div class="row muted" style:padding-left="{24 + depth * 16}px">{t('载入中…')}</div>
   {:else}
     {#each children as child (child.path || child.name)}
       <TreeRow node={child} depth={depth + 1} parentSize={node.allocationSize} {selected} {expanded} {onSelect} {onToggle} />

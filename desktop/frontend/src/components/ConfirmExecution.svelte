@@ -3,6 +3,8 @@
   import { close, exec, execute, GONE_REASON, isGone } from '../lib/execution.svelte'
   import { bytes, middle } from '../lib/format'
   import { execText } from '../lib/labels'
+  import { t } from '../lib/i18n.svelte'
+  import { bt } from '../lib/backendText'
 
   const MAX_ITEMS = 50
   const kindBadge: Record<PreparedAction['kind'], { text: string; tone: string }> = {
@@ -40,13 +42,13 @@
 <svelte:window onkeydown={onKey} />
 
 <div class="backdrop">
-  <div class="modal" role="dialog" aria-modal="true" aria-label="确认执行">
+  <div class="modal" role="dialog" aria-modal="true" aria-label={t('确认执行')}>
     {#if exec.phase === 'preparing'}
-      <div class="center"><span class="spinner" aria-hidden="true"></span><span>正在核对每一项的最新状态…</span></div>
+      <div class="center"><span class="spinner" aria-hidden="true"></span><span>{t('正在核对每一项的最新状态…')}</span></div>
     {:else if exec.phase === 'confirm'}
-      <h2>{exec.mode === 'prevent' ? '确认执行：防止再长出来' : '确认执行'}</h2>
-      {#if exec.error}<p class="warn">{exec.error}</p>{/if}
-      {#if actions.length === 0 && !exec.error}<p class="muted">没有可执行的项目。</p>{/if}
+      <h2>{exec.mode === 'prevent' ? t('确认执行：防止再长出来') : t('确认执行')}</h2>
+      {#if exec.error}<p class="warn">{bt(exec.error)}</p>{/if}
+      {#if actions.length === 0 && !exec.error}<p class="muted">{t('没有可执行的项目。')}</p>{/if}
       <div class="list">
         {#each actions as a (a.key)}
           {@const badge = kindBadge[a.kind]}
@@ -55,20 +57,20 @@
           {@const goneItems = a.items.filter((it) => it.reason === GONE_REASON)}
           <section class="card" class:off={!a.runnable} class:gone>
             <div class="head">
-              <input type="checkbox" aria-label="执行这一项" checked={!!exec.accepted[a.key]} disabled={!a.runnable || (a.kind === 'command' && !readCmd[a.key])} onchange={(e) => setAccepted(a, e.currentTarget.checked)} />
+              <input type="checkbox" aria-label={t('执行这一项')} checked={!!exec.accepted[a.key]} disabled={!a.runnable || (a.kind === 'command' && !readCmd[a.key])} onchange={(e) => setAccepted(a, e.currentTarget.checked)} />
               <div class="titles">
-                <span class="muted small ell">{a.findingTitle}</span>
-                <strong>{a.label}</strong>
+                <span class="muted small ell">{bt(a.findingTitle)}</span>
+                <strong>{bt(a.label)}</strong>
               </div>
-              <span class="badge {badge.tone}">{badge.text}</span>
-              {#if a.needsAdmin}<span class="badge warn">需要管理员权限</span>{/if}
+              <span class="badge {badge.tone}">{t(badge.text)}</span>
+              {#if a.needsAdmin}<span class="badge warn">{t('需要管理员权限')}</span>{/if}
               {#if a.bytes > 0}<span class="size">{bytes(a.bytes)}</span>{/if}
             </div>
-            {#if gone}<p class="muted small">已不存在，可能已经清理过</p>{/if}
-            {#if a.error}<p class="warn small">{a.error}</p>{/if}
+            {#if gone}<p class="muted small">{t('已不存在，可能已经清理过')}</p>{/if}
+            {#if a.error}<p class="warn small">{bt(a.error)}</p>{/if}
             {#if a.kind === 'config' || a.kind === 'manual'}
               <p class="small instr">{a.explain}</p>
-              <p class="muted small">这一项需要你自己完成，Pare 不会替你改动。</p>
+              <p class="muted small">{t('这一项需要你自己完成，Pare 不会替你改动。')}</p>
             {:else}
               {#if a.kind === 'quarantine' && a.items.length}
                 <ul class="items">
@@ -80,10 +82,10 @@
                     </li>
                   {/each}
                 </ul>
-                {#if liveItems.length > MAX_ITEMS}<p class="muted small">…另有 {liveItems.length - MAX_ITEMS} 项</p>{/if}
+                {#if liveItems.length > MAX_ITEMS}<p class="muted small">{t('…另有 {n} 项', { n: liveItems.length - MAX_ITEMS })}</p>{/if}
                 {#if goneItems.length}
                   <button class="gone-row small" onclick={() => (goneOpen[a.key] = !goneOpen[a.key])}>
-                    已不存在（可能已清理）{goneItems.length} 项 {goneOpen[a.key] ? '▾' : '▸'}
+                    {t('已不存在（可能已清理）{n} 项', { n: goneItems.length })} {goneOpen[a.key] ? '▾' : '▸'}
                   </button>
                   {#if goneOpen[a.key]}
                     <ul class="items muted">
@@ -91,18 +93,18 @@
                         <li class="mono" title={it.path}><span class="p">{middle(it.path, 80)}</span></li>
                       {/each}
                     </ul>
-                    {#if goneItems.length > MAX_ITEMS}<p class="muted small">…另有 {goneItems.length - MAX_ITEMS} 项</p>{/if}
+                    {#if goneItems.length > MAX_ITEMS}<p class="muted small">{t('…另有 {n} 项', { n: goneItems.length - MAX_ITEMS })}</p>{/if}
                   {/if}
                 {/if}
               {/if}
               {#if a.steps.length}<pre class="mono code">{a.steps.join('\n')}</pre>{/if}
               {#if a.warnings.length}
-                <ul class="warns small">{#each a.warnings as w}<li>{w}</li>{/each}</ul>
+                <ul class="warns small">{#each a.warnings as w}<li>{bt(w)}</li>{/each}</ul>
               {/if}
               {#if a.kind === 'command' && a.runnable}
                 <label class="inline small">
                   <input type="checkbox" checked={!!readCmd[a.key]} onchange={(e) => setRead(a, e.currentTarget.checked)} />
-                  我已逐字读懂这条命令
+                  {t('我已逐字读懂这条命令')}
                 </label>
               {/if}
             {/if}
@@ -111,19 +113,19 @@
       </div>
       <footer>
         <div class="summary">
-          <strong>将执行 {accepted.length} 项{exec.mode === 'clean' ? `，预计回收 ${bytes(total)}` : ''}</strong>
+          <strong>{exec.mode === 'clean' ? t('将执行 {n} 项，预计回收 {size}', { n: accepted.length, size: bytes(total) }) : t('将执行 {n} 项', { n: accepted.length })}</strong>
           {#if irreversible > 0}
-            <label class="inline small warn"><input type="checkbox" bind:checked={irreversibleAck} />我知道其中 {irreversible} 项执行后无法撤回</label>
+            <label class="inline small warn"><input type="checkbox" bind:checked={irreversibleAck} />{t('我知道其中 {n} 项执行后无法撤回', { n: irreversible })}</label>
           {/if}
-          {#if exec.mode === 'clean'}<span class="muted small">移入隔离区的项目可以在「隔离区」页恢复；隔离不会立刻腾出空间，清空后才会释放。</span>{/if}
+          {#if exec.mode === 'clean'}<span class="muted small">{t('移入隔离区的项目可以在「隔离区」页恢复；隔离不会立刻腾出空间，清空后才会释放。')}</span>{/if}
         </div>
         <div class="buttons">
-          <button onclick={close}>取消</button>
-          <button class="primary" disabled={!canGo} onclick={execute}>确认执行</button>
+          <button onclick={close}>{t('取消')}</button>
+          <button class="primary" disabled={!canGo} onclick={execute}>{t('确认执行')}</button>
         </div>
       </footer>
     {:else if exec.phase === 'running'}
-      <h2>正在执行…</h2>
+      <h2>{t('正在执行…')}</h2>
       <div class="list">
         {#each accepted as a (a.key)}
           {@const r = exec.progress[a.key]}
@@ -132,8 +134,8 @@
               {#if !r || r.status === 'running'}<span class="spinner" aria-hidden="true"></span>{:else}{statusIcon[r.status]}{/if}
             </span>
             <div class="rbody">
-              <strong class="ell">{a.label}</strong>
-              <span class="muted small">{r ? execText(r.detail) : '等待中…'}</span>
+              <strong class="ell">{bt(a.label)}</strong>
+              <span class="muted small">{r ? execText(r.detail) : t('等待中…')}</span>
             </div>
           </div>
         {/each}

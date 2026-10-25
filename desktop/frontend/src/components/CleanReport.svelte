@@ -6,6 +6,8 @@
   import { inv } from '../lib/investigation.svelte'
   import { bytes } from '../lib/format'
   import { execText } from '../lib/labels'
+  import { t, numberLocale } from '../lib/i18n.svelte'
+  import { bt } from '../lib/backendText'
 
   let {
     report,
@@ -58,72 +60,72 @@
 
 <div class="report">
   <div class="head">
-    <h2>清理完成</h2>
-    <span class="muted small">{new Date(report.time).toLocaleString('zh-CN', { hour12: false })}</span>
+    <h2>{t('清理完成')}</h2>
+    <span class="muted small">{new Date(report.time).toLocaleString(numberLocale(), { hour12: false })}</span>
   </div>
 
   <div class="stats">
     <section class="stat hero">
-      <span class="label">{report.volume.replace('\\', '')} 盘可用空间</span>
+      <span class="label">{t('{drive} 盘可用空间', { drive: report.volume.replace('\\', '') })}</span>
       {#if known}
         <strong class="big">{bytes(shownFree.current)}</strong>
         <span class="small">
-          清理前 {bytes(report.freeBefore)}
-          {#if gained > 0}<span class="gain">+{bytes(shownGain.current)}</span>{:else}<span class="muted">· 暂时没有变化</span>{/if}
+          {t('清理前 {size}', { size: bytes(report.freeBefore) })}
+          {#if gained > 0}<span class="gain">+{bytes(shownGain.current)}</span>{:else}<span class="muted">{t('· 暂时没有变化')}</span>{/if}
         </span>
       {:else}
         <strong class="big">—</strong>
-        <span class="muted small">读不到磁盘空间</span>
+        <span class="muted small">{t('读不到磁盘空间')}</span>
       {/if}
     </section>
 
     <section class="stat">
-      <span class="label">隔离中</span>
+      <span class="label">{t('隔离中')}</span>
       <strong class="big" class:dim={waiting === 0}>{bytes(waiting)}</strong>
       {#if purge === 'done'}
-        <span class="small gain">已永久清空，释放 {bytes(purgeFreed)}</span>
+        <span class="small gain">{t('已永久清空，释放 {size}', { size: bytes(purgeFreed) })}</span>
       {:else if report.manifests.length === 0}
-        <span class="muted small">这次没有移入隔离区的文件</span>
+        <span class="muted small">{t('这次没有移入隔离区的文件')}</span>
       {:else if purge === 'ask' || purge === 'busy'}
-        <span class="warn small">将永久删除，无法恢复</span>
+        <span class="warn small">{t('将永久删除，无法恢复')}</span>
         <div class="row">
-          <button disabled={purge === 'busy'} onclick={() => (purge = 'idle')}>先不清空</button>
-          <button class="primary" disabled={purge === 'busy'} onclick={doPurge}>{purge === 'busy' ? '清空中…' : '确定清空'}</button>
+          <button disabled={purge === 'busy'} onclick={() => (purge = 'idle')}>{t('先不清空')}</button>
+          <button class="primary" disabled={purge === 'busy'} onclick={doPurge}>{purge === 'busy' ? t('清空中…') : t('确定清空')}</button>
         </div>
       {:else}
-        <span class="muted small">文件还在盘上，清空后才会释放</span>
-        <div class="row"><button class="primary" onclick={() => (purge = 'ask')}>立即清空这批</button></div>
+        <span class="muted small">{t('文件还在盘上，清空后才会释放')}</span>
+        <div class="row"><button class="primary" onclick={() => (purge = 'ask')}>{t('立即清空这批')}</button></div>
       {/if}
-      {#if purgeError}<span class="warn small">{purgeError}</span>{/if}
+      {#if purgeError}<span class="warn small">{bt(purgeError)}</span>{/if}
     </section>
 
     <section class="stat">
-      <span class="label">处理结果</span>
-      <strong class="big">{counts.ok + counts.partial}<span class="unit">/ {report.results.length} 项</span></strong>
-      <span class="small muted">完成 {counts.ok} · 部分 {counts.partial} · 未完成 {counts.rest}</span>
+      <span class="label">{t('处理结果')}</span>
+      <strong class="big">{counts.ok + counts.partial}<span class="unit">{t('/ {n} 项', { n: report.results.length })}</span></strong>
+      <span class="small muted">{t('完成 {ok} · 部分 {partial} · 未完成 {rest}', { ok: counts.ok, partial: counts.partial, rest: counts.rest })}</span>
     </section>
   </div>
 
-  {#if report.error}<p class="warn">{report.error}</p>{/if}
+  {#if report.error}<p class="warn">{bt(report.error)}</p>{/if}
 
   <div class="cols">
     <section class="panel">
-      <h3>处理明细</h3>
+      <h3>{t('处理明细')}</h3>
       <ul class="results">
         {#each report.results as r, i (r.key)}
           <li style:animation-delay="{Math.min(i, 8) * 40}ms">
-            <span class="ic {r.status}" title={statusText[r.status]}>{statusIcon[r.status]}</span>
+            <span class="ic {r.status}" title={t(statusText[r.status])}>{statusIcon[r.status]}</span>
             <div class="rbody">
-              <span class="muted small ell">{r.findingTitle}</span>
+              <span class="muted small ell">{bt(r.findingTitle)}</span>
               <div class="line">
-                <strong class="ell">{r.label}</strong>
-                <span class="tag">{kindText[r.kind] ?? r.kind}</span>
+                <strong class="ell">{bt(r.label)}</strong>
+                <span class="tag">{kindText[r.kind] ? t(kindText[r.kind]) : r.kind}</span>
                 {#if r.bytes > 0}<span class="size">{bytes(r.bytes)}</span>{/if}
               </div>
               {#if r.detail}<span class="small" class:warn={r.status !== 'done'}>{execText(r.detail)}</span>{/if}
               {#if r.output}
                 <details>
-                  <summary class="small muted">查看输出</summary>
+                  <summary class="small muted">{t('查看输出')}</summary>
                   <pre class="mono code">{r.output}</pre>
                 </details>
               {/if}
@@ -135,12 +137,12 @@
 
     {#if report.tips.length}
       <section class="panel">
-        <h3>防止再长出来</h3>
-        <p class="muted small">这些问题以后还会出现。能自动处理的可以一键执行，执行前同样会给你看具体命令。</p>
+        <h3>{t('防止再长出来')}</h3>
+        <p class="muted small">{t('这些问题以后还会出现。能自动处理的可以一键执行，执行前同样会给你看具体命令。')}</p>
         {#each report.tips as tip}
           {@const steps = prevention(tip.findingId)}
           <div class="tip">
-            <strong class="small">{tip.findingTitle}</strong>
+            <strong class="small">{bt(tip.findingTitle)}</strong>
             <span class="small">{tip.text}</span>
             {#each steps as p, i}
               {@const key = `${tip.findingId}:p${i}`}
@@ -151,16 +153,16 @@
                   <span class="muted small">{p.explain}</span>
                   {#if result}
                     <span class="small" class:gain={result.status === 'done'} class:warn={result.status !== 'done'}>
-                      {statusIcon[result.status]} {result.status === 'done' ? '已处理' : execText(result.detail) || statusText[result.status]}
+                      {statusIcon[result.status]} {result.status === 'done' ? t('已处理') : execText(result.detail) || t(statusText[result.status])}
                     </span>
                   {/if}
                 </div>
                 {#if p.kind === 'template' || p.kind === 'command'}
                   {#if result?.status !== 'done'}
-                    <button class="primary small-btn" disabled={busy} onclick={() => openPrevention(tip.findingId, i)}>一键处理</button>
+                    <button class="primary small-btn" disabled={busy} onclick={() => openPrevention(tip.findingId, i)}>{t('一键处理')}</button>
                   {/if}
                 {:else}
-                  <span class="muted small nowrap">需要你自己操作</span>
+                  <span class="muted small nowrap">{t('需要你自己操作')}</span>
                 {/if}
               </div>
             {/each}
@@ -171,13 +173,13 @@
   </div>
 
   <footer>
-    <span class="muted small">原来的扫描结果已经过时，重新扫描可以看到最新占用。</span>
+    <span class="muted small">{t('原来的扫描结果已经过时，重新扫描可以看到最新占用。')}</span>
     <div class="row">
-      <button onclick={onUndoPage}>去隔离区</button>
-      <button onclick={onRescan}>重新扫描</button>
-      <button onclick={onContinue}>继续深挖剩下的问题</button>
-      <button onclick={onBack}>返回清理页</button>
-      <button class="primary" onclick={onHome}>回到主页</button>
+      <button onclick={onUndoPage}>{t('去隔离区')}</button>
+      <button onclick={onRescan}>{t('重新扫描')}</button>
+      <button onclick={onContinue}>{t('继续深挖剩下的问题')}</button>
+      <button onclick={onBack}>{t('返回清理页')}</button>
+      <button class="primary" onclick={onHome}>{t('回到主页')}</button>
     </div>
   </footer>
 </div>

@@ -2,6 +2,8 @@
   import { hierarchy, treemap, treemapSquarify, type HierarchyRectangularNode } from 'd3-hierarchy'
   import { backend, type NodeTree } from '../lib/api'
   import { bytes, percent } from '../lib/format'
+  import { numberLocale, t } from '../lib/i18n.svelte'
+  import { bt } from '../lib/backendText'
 
   let { path, onSelect }: { path: string; onSelect: (path: string) => void } = $props()
 
@@ -67,11 +69,11 @@
 
 <div class="treemap" bind:clientWidth={width} bind:clientHeight={height} role="presentation" onmouseleave={() => (hover = null)}>
   {#if failed}
-    <p class="muted empty">无法显示：{failed}</p>
+    <p class="muted empty">{t('无法显示：{error}', { error: failed })}</p>
   {:else if data && data.allocationSize === 0}
-    <p class="muted empty">这个位置没有占用空间的文件。</p>
+    <p class="muted empty">{t('这个位置没有占用空间的文件。')}</p>
   {:else}
-    <svg {width} {height} role="img" aria-label="空间占用图">
+    <svg {width} {height} role="img" aria-label={t('空间占用图')}>
       <defs>
         <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="0" y1="0" x2="0" y2="6" stroke="var(--warn)" stroke-width="1.5" opacity="0.45" />
@@ -94,9 +96,9 @@
             <rect width={w} height={h} rx="2" fill="url(#hatch)" />
           {/if}
           {#if cell.children && w > 40}
-            <text x="5" y="12.5" class="group">{cell.data.name} · {bytes(cell.data.allocationSize)}</text>
+            <text x="5" y="12.5" class="group">{cell.data.kind === 'others' ? bt(cell.data.name) : cell.data.name} · {bytes(cell.data.allocationSize)}</text>
           {:else if !cell.children && w > 56 && h > 30}
-            <text x="6" y="16" class="leaf">{cell.data.name}</text>
+            <text x="6" y="16" class="leaf">{cell.data.kind === 'others' ? bt(cell.data.name) : cell.data.name}</text>
             <text x="6" y="30" class="leaf small">{bytes(cell.data.allocationSize)}</text>
           {/if}
         </g>
@@ -106,10 +108,10 @@
 
   {#if hover}
     <div class="tip" style:left="{Math.min(hover.x + 14, width - 260)}px" style:top="{Math.min(hover.y + 14, height - 90)}px">
-      <strong>{hover.node.name}</strong>
-      <div>{bytes(hover.node.allocationSize)} · 占当前位置 {percent(hover.node.allocationSize, data?.allocationSize ?? 0)}</div>
-      {#if hover.node.kind === 'directory'}<div class="muted">{hover.node.files.toLocaleString('zh-CN')} 个文件 · 单击进入</div>{/if}
-      {#if hover.node.incomplete}<div class="warn">其中有读不到的位置，大小是下限</div>{/if}
+      <strong>{hover.node.kind === 'others' ? bt(hover.node.name) : hover.node.name}</strong>
+      <div>{t('{size} · 占当前位置 {pct}', { size: bytes(hover.node.allocationSize), pct: percent(hover.node.allocationSize, data?.allocationSize ?? 0) })}</div>
+      {#if hover.node.kind === 'directory'}<div class="muted">{t('{n} 个文件 · 单击进入', { n: hover.node.files.toLocaleString(numberLocale()) })}</div>{/if}
+      {#if hover.node.incomplete}<div class="warn">{t('其中有读不到的位置，大小是下限')}</div>{/if}
     </div>
   {/if}
 </div>

@@ -151,6 +151,7 @@ func (a *App) StartInvestigation(scope, note, depth string, continueRun bool) er
 		Tools:    env.Tools(),
 		MaxSteps: steps,
 		IDPrefix: prefix,
+		Coverage: env.Unvisited,
 		Emit: func(e advisor.Event) {
 			switch e.Kind {
 			case advisor.EventFinding:
@@ -165,7 +166,7 @@ func (a *App) StartInvestigation(scope, note, depth string, continueRun bool) er
 	}
 	a.logf("开始深挖 %s：%s · %s，深度 %s（%d 步），继续 %v", scope, settings.Provider, settings.Model, depth, steps, continueRun)
 	go func() {
-		findings, runErr := agent.Run(ctx, advisor.SystemPrompt(), advisor.UserPrompt(scope, note, steps, reported))
+		findings, runErr := agent.Run(ctx, advisor.SystemPromptFor(a.language()), advisor.UserPrompt(scope, note, steps, reported))
 		result := InvestigationResult{Cancelled: errors.Is(runErr, context.Canceled)}
 		if runErr != nil && !result.Cancelled {
 			result.Error = runErr.Error()
@@ -192,6 +193,28 @@ func (a *App) StartInvestigation(scope, note, depth string, continueRun bool) er
 		runtime.EventsEmit(a.ctx, "ai:finished", result)
 	}()
 	return nil
+}
+
+// SetLanguage records the interface locale (zh-CN, zh-TW, en, ja, fr, de). Later
+// investigations write their findings in it; earlier findings keep their language.
+func (a *App) SetLanguage(locale string) {
+	a.mu.Lock()
+	a.lang = locale
+	a.mu.Unlock()
+}
+
+func (a *App) language() string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.lang
+}
+
+// dialogText picks the native dialog wording for the interface locale.
+func (a *App) dialogText(texts map[string]string) string {
+	if text, ok := texts[a.language()]; ok {
+		return text
+	}
+	return texts["zh-CN"]
 }
 
 func (a *App) StopInvestigation() {

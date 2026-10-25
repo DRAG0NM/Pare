@@ -41,6 +41,8 @@ type App struct {
 	historyFile string
 	// logFolder overrides the log location (tests).
 	logFolder string
+	// lang is the interface locale; the AI writes findings in it.
+	lang string
 	ai        investigation
 }
 
@@ -94,7 +96,10 @@ type ScanSummary struct {
 
 // ChooseFolder opens the system folder picker; it returns "" when the user cancels.
 func (a *App) ChooseFolder() (string, error) {
-	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{Title: "选择要扫描的文件夹"})
+	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{Title: a.dialogText(map[string]string{
+		"zh-CN": "选择要扫描的文件夹", "zh-TW": "選擇要掃描的資料夾", "en": "Choose a folder to scan",
+		"ja": "スキャンするフォルダーを選択", "fr": "Choisir un dossier à analyser", "de": "Zu scannenden Ordner wählen",
+	})})
 }
 
 // StartScan scans root in the background. Progress arrives as "scan:progress" events

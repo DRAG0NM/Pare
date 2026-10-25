@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { backend, type Drive } from '../lib/api'
+  import { t } from '../lib/i18n.svelte'
   import { bytes, percent } from '../lib/format'
 
   let { onScan, error }: { onScan: (root: string) => void; error: string } = $props()
@@ -19,33 +20,33 @@
 </script>
 
 <div class="home">
-  <h1>看看空间都去哪了</h1>
-  <p class="muted">选择一个磁盘或文件夹开始扫描。扫描只读取文件信息，不会改动任何文件。</p>
+  <h1>{t('看看空间都去哪了')}</h1>
+  <p class="muted">{t('选择一个磁盘或文件夹开始扫描。扫描只读取文件信息，不会改动任何文件。')}</p>
 
   <div class="drives">
     {#each drives as drive}
       <button class="drive" onclick={() => onScan(drive.root)}>
         <div class="name">
           <strong>{drive.root.replace('\\', '')}</strong>
-          <span class="muted">{drive.label || '本地磁盘'}</span>
+          <span class="muted">{drive.label || t('本地磁盘')}</span>
         </div>
         <div class="meter"><div style:width={percent(drive.total - drive.free, drive.total)}></div></div>
-        <div class="muted small">可用 {bytes(drive.free)}，共 {bytes(drive.total)}</div>
+        <div class="muted small">{t('可用 {free}，共 {total}', { free: bytes(drive.free), total: bytes(drive.total) })}</div>
       </button>
     {/each}
     <button class="drive folder" onclick={chooseFolder}>
-      <strong>选择文件夹…</strong>
-      <span class="muted small">只扫描某个目录</span>
+      <strong>{t('选择文件夹…')}</strong>
+      <span class="muted small">{t('只扫描某个目录')}</span>
     </button>
   </div>
 
-  {#if error}<p class="error">扫描未能开始：{error}</p>{/if}
+  {#if error}<p class="error">{t('扫描未能开始：{error}', { error })}</p>{/if}
 
   {#if elevated === true}
-    <p class="muted small note">已以管理员身份运行，可以读取只对系统开放的目录。</p>
+    <p class="muted small note">{t('已以管理员身份运行，可以读取只对系统开放的目录。')}</p>
   {:else if elevated === false}
     <p class="muted small note warn-note">
-      当前不是管理员身份，System Volume Information 等只对系统开放的目录会读不到。它们会在结果里单独列出，不会被算成 0；需要完整结果时，请右键“以管理员身份运行”。
+      {t('当前不是管理员身份，System Volume Information 等只对系统开放的目录会读不到。它们会在结果里单独列出，不会被算成 0；需要完整结果时，请右键“以管理员身份运行”。')}
     </p>
   {/if}
 </div>

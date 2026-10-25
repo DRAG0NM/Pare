@@ -2,6 +2,8 @@
   import { onMount } from 'svelte'
   import { backend, type BatchSummary, type HistoryEntry } from '../lib/api'
   import { bytes } from '../lib/format'
+  import { t } from '../lib/i18n.svelte'
+  import { bt } from '../lib/backendText'
 
   let batches = $state<BatchSummary[]>([])
   let loading = $state(false)
@@ -32,7 +34,7 @@
   })
 
   const clean = (e: unknown) => String(e).replace(/^Error:\s*/, '')
-  const statusText: Record<string, string> = { partial: '部分完成', skipped: '未执行', failed: '失败' }
+  const statusText = (s: string) => (s === 'partial' ? t('部分完成') : s === 'skipped' ? t('未执行') : s === 'failed' ? t('失败') : s)
   const pad = (n: number) => String(n).padStart(2, '0')
   function when(iso: string) {
     const d = new Date(iso)
@@ -46,7 +48,7 @@
       const ex = await backend.UndoBatch(b.manifest)
       const restored = ex.items.filter((i) => i.state === 'restored').length
       const conflicts = ex.items.filter((i) => i.state === 'conflict').length
-      messages[b.manifest] = `已撤回 ${restored} 项` + (conflicts ? `，${conflicts} 项因原位置已有同名文件而没有恢复` : '')
+      messages[b.manifest] = t('已撤回 {n} 项', { n: restored }) + (conflicts ? t('，{n} 项因原位置已有同名文件而没有恢复', { n: conflicts }) : '')
     } catch (e) {
       messages[b.manifest] = clean(e)
     }
@@ -66,7 +68,7 @@
     busy = b.manifest
     try {
       const r = await backend.PurgeBatch(b.manifest)
-      messages[b.manifest] = `已永久清空，释放了 ${bytes(r.freedBytes)}`
+      messages[b.manifest] = t('已永久清空，释放了 {size}', { size: bytes(r.freedBytes) })
     } catch (e) {
       messages[b.manifest] = clean(e)
     }
@@ -77,28 +79,28 @@
 
 <div class="page">
   <div class="top">
-    <h2>隔离区</h2>
-    <span class="muted small">被移入隔离区的文件可以在这里恢复，或永久清空以释放空间。</span>
-    <button class="refresh" disabled={loading} onclick={load}>{loading ? '刷新中…' : '刷新'}</button>
+    <h2>{t('隔离区')}</h2>
+    <span class="muted small">{t('被移入隔离区的文件可以在这里恢复，或永久清空以释放空间。')}</span>
+    <button class="refresh" disabled={loading} onclick={load}>{loading ? t('刷新中…') : t('刷新')}</button>
   </div>
-  {#if error}<p class="warn">{error}</p>{/if}
+  {#if error}<p class="warn">{bt(error)}</p>{/if}
   <div class="list">
     {#if batches.length === 0 && !loading && !error}
-      <p class="muted empty">隔离区是空的。执行清理后，移入隔离区的文件会出现在这里，可以随时撤回。</p>
+      <p class="muted empty">{t('隔离区是空的。执行清理后，移入隔离区的文件会出现在这里，可以随时撤回。')}</p>
     {/if}
     {#each batches as b (b.manifest)}
       <section class="card">
         <div class="info">
           <strong>{when(b.createdAt)}</strong>
-          <span class="muted small">隔离中 {b.quarantined} · 已撤回 {b.restored} · 已清空 {b.purged}</span>
+          <span class="muted small">{t('隔离中 {a} · 已撤回 {b} · 已清空 {c}', { a: b.quarantined, b: b.restored, c: b.purged })}</span>
           <span class="muted small mono ell" title={b.manifest}>{b.manifest}</span>
-          {#if messages[b.manifest]}<span class="small msg">{messages[b.manifest]}</span>{/if}
+          {#if messages[b.manifest]}<span class="small msg">{bt(messages[b.manifest])}</span>{/if}
         </div>
         <span class="size">{bytes(b.quarantinedBytes)}</span>
         <div class="buttons">
-          <button disabled={b.quarantined === 0 || busy === b.manifest} onclick={() => undo(b)}>撤回这批</button>
+          <button disabled={b.quarantined === 0 || busy === b.manifest} onclick={() => undo(b)}>{t('撤回这批')}</button>
           <button class:danger={confirming === b.manifest} disabled={b.quarantined === 0 || busy === b.manifest} onclick={() => purgeClick(b)}>
-            {confirming === b.manifest ? '再点一次确认永久删除' : '永久清空'}
+            {confirming === b.manifest ? t('再点一次确认永久删除') : t('永久清空')}
           </button>
         </div>
       </section>
@@ -106,21 +108,21 @@
 
     {#if history.length}
       <div class="history">
-        <button class="quiet" onclick={() => (historyOpen = !historyOpen)}>清理记录（{history.length}） {historyOpen ? '▾' : '▸'}</button>
+        <button class="quiet" onclick={() => (historyOpen = !historyOpen)}>{t('清理记录（{n}）', { n: history.length })} {historyOpen ? '▾' : '▸'}</button>
         {#if historyOpen}
           <ul>
             {#each history as h, i}
               <li>
                 {#if h.kind === 'purge'}
-                  <span>{when(h.time)} · 清空隔离区 {h.items} 项 · 释放 {bytes(Math.max(0, h.freedBytes))}</span>
+                  <span>{t('{time} · 清空隔离区 {n} 项 · 释放 {size}', { time: when(h.time), n: h.items, size: bytes(Math.max(0, h.freedBytes)) })}</span>
                 {:else}
                   <button class="quiet line" onclick={() => (entryOpen[i] = !entryOpen[i])}>
-                    {when(h.time)} · 清理 {h.items} 项{h.freedBytes > 0 ? ` · 释放 ${bytes(h.freedBytes)}` : ''}{h.quarantinedBytes > 0 ? ` · 隔离 ${bytes(h.quarantinedBytes)}` : ''}
+                    {t('{time} · 清理 {n} 项', { time: when(h.time), n: h.items })}{h.freedBytes > 0 ? ' · ' + t('释放 {size}', { size: bytes(h.freedBytes) }) : ''}{h.quarantinedBytes > 0 ? ' · ' + t('隔离 {size}', { size: bytes(h.quarantinedBytes) }) : ''}
                   </button>
                   {#if entryOpen[i]}
                     <ul class="actions">
                       {#each h.actions as a}
-                        <li>{a.findingTitle ? `${a.findingTitle} — ` : ''}{a.label}{a.bytes > 0 ? ` · ${bytes(a.bytes)}` : ''}{a.status === 'done' ? '' : ` · ${statusText[a.status] ?? a.status}`}</li>
+                        <li>{a.findingTitle ? `${a.findingTitle} — ` : ''}{a.label}{a.bytes > 0 ? ` · ${bytes(a.bytes)}` : ''}{a.status === 'done' ? '' : ` · ${statusText(a.status)}`}</li>
                       {/each}
                     </ul>
                   {/if}

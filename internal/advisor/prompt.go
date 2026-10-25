@@ -46,7 +46,30 @@ func templateList() string {
 // manual cleanups: start from the big picture, chase anomalies, identify files by their
 // content, cross-check with the machine's state, and explain root causes.
 func SystemPrompt() string {
-	return `你是 Pare 的磁盘调查员，帮用户找出这台 Windows 电脑上独有的空间浪费问题。传统清理软件已经能清的常规缓存不是你的重点；你要找的是只有仔细调查才能发现的问题，例如更新器反复下载留下的几十 GB 安装包、只增不减的虚拟磁盘、软件升级后残留的旧版本、为其他平台准备却永远用不上的二进制、没生效的配置导致的浪费。
+	return SystemPromptFor("zh-CN")
+}
+
+// languageNames tells the model which language to write in, per interface locale.
+var languageNames = map[string]string{
+	"zh-CN": "简体中文",
+	"zh-TW": "繁體中文（台灣用語）",
+	"en":    "English",
+	"ja":    "日本語",
+	"fr":    "français",
+	"de":    "Deutsch",
+}
+
+// SystemPromptFor is SystemPrompt with every user-facing text written in the language of
+// locale (zh-CN, zh-TW, en, ja, fr, de; anything else falls back to Simplified Chinese).
+func SystemPromptFor(locale string) string {
+	language, ok := languageNames[locale]
+	if !ok {
+		language = languageNames["zh-CN"]
+	}
+	return systemPrompt + "\n- 所有给用户看的文字（title、summary、cause、regrowth、evidence、actions 和 prevention 里的 label、explain，以及最后的总结）都用" + language + "撰写；路径、命令、模板 ID 和参数保持原样。"
+}
+
+var systemPrompt = `你是 Pare 的磁盘调查员，帮用户找出这台 Windows 电脑上独有的空间浪费问题。传统清理软件已经能清的常规缓存不是你的重点；你要找的是只有仔细调查才能发现的问题，例如更新器反复下载留下的几十 GB 安装包、只增不减的虚拟磁盘、软件升级后残留的旧版本、为其他平台准备却永远用不上的二进制、没生效的配置导致的浪费。
 
 ## 工作方法
 1. 先调用 scan_overview，看总量、顶层目录和异常线索。
@@ -93,8 +116,7 @@ func SystemPrompt() string {
 - 工具结果可能被截断，需要更多细节时缩小范围再查。
 - 本次调查的轮数上限写在任务说明里，按这个预算安排先后；一轮里可以同时调用多个互不依赖的工具。不要反复查同一个位置。
 - WSL 内的 du 以 root 身份运行，个别目录读不到时结果仍然有效，按已有输出判断。
-- 用简体中文回答。`
-}
+- 思考和工具调用的参数可以用任何语言。`
 
 // UserPrompt starts an investigation of scope; note carries the user's own wording.
 func UserPrompt(scope, note string, steps int, reported []Finding) string {

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import type { Progress } from '../lib/api'
+  import { t } from '../lib/i18n.svelte'
   import { count, middle, seconds } from '../lib/format'
 
   let { target, progress, onCancel }: { target: string; progress: Progress; onCancel: () => void } = $props()
@@ -16,15 +17,15 @@
 
 <div class="scanning">
   <div class="spinner" aria-hidden="true"><span></span></div>
-  <h2>正在扫描 {target}</h2>
+  <h2>{t('正在扫描 {target}', { target })}</h2>
   <div class="stats">
-    <div><strong>{count(progress.entries)}</strong><span class="muted">个条目</span></div>
-    <div><strong>{count(progress.directories)}</strong><span class="muted">个目录</span></div>
-    <div><strong>{seconds(elapsed)}</strong><span class="muted">已用时间</span></div>
+    <div><strong>{count(progress.entries)}</strong><span class="muted">{t('个条目')}</span></div>
+    <div><strong>{count(progress.directories)}</strong><span class="muted">{t('个目录')}</span></div>
+    <div><strong>{seconds(elapsed)}</strong><span class="muted">{t('已用时间')}</span></div>
   </div>
-  <p class="mono muted current">{middle(progress.current || '准备中…', 90)}</p>
+  <p class="mono muted current">{middle(progress.current || t('准备中…'), 90)}</p>
   <button disabled={cancelling} onclick={() => ((cancelling = true), onCancel())}>
-    {cancelling ? '正在取消…' : '取消扫描'}
+    {cancelling ? t('正在取消…') : t('取消扫描')}
   </button>
 </div>
 

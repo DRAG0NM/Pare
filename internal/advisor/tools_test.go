@@ -215,3 +215,16 @@ func TestInvestigationWithRealTools(t *testing.T) {
 		t.Fatal("system prompt lacks templates or injection guard")
 	}
 }
+
+func TestUnvisitedListsLargestBlindSpots(t *testing.T) {
+	env := testEnvironment()
+	blind := env.Unvisited([]string{`C:\Users\me\claude\versions\2.1.153`})
+	joined := strings.Join(blind, " | ")
+	// Users was touched, so the search goes inside it; Windows was not.
+	if !strings.Contains(joined, `C:\Windows（`) || strings.Contains(joined, `C:\Users（`) || !strings.Contains(joined, `C:\Users\me\AppData（`) {
+		t.Errorf("Unvisited = %v", blind)
+	}
+	if got := env.Unvisited([]string{`C:\Windows\SystemTemp`, `C:\Users\me\AppData\Local\wsl\disk\ext4.vhdx`}); len(got) != 0 {
+		t.Errorf("everything large was visited, got %v", got)
+	}
+}

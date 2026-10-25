@@ -4,6 +4,8 @@
   import { backend, type CandidateGroup, type CandidateItem, type CandidateView } from '../lib/api'
   import { openConfirm } from '../lib/execution.svelte'
   import { bytes, middle } from '../lib/format'
+  import { t, numberLocale } from '../lib/i18n.svelte'
+  import { bt } from '../lib/backendText'
   import { ageText, blockedReason, daysAgo, evidenceNames, evidenceText, riskLabel, ruleExplain, ruleName } from '../lib/labels'
 
   let { selection, onBack }: { selection: SvelteSet<string>; onBack: () => void } = $props()
@@ -45,11 +47,11 @@
       if (refresh) {
         const lost = [...before].filter((p) => !executable.has(p)).length
         const gained = [...executable].filter((p) => !before.has(p)).length
-        const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        const time = new Date().toLocaleTimeString(numberLocale(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
         checkResult =
           lost === 0 && gained === 0
-            ? `${time} 已重新核对，没有变化`
-            : `${time} 已重新核对：${gained} 项变为可清理，${lost} 项不再能清理${unselected ? `（已取消其中 ${unselected} 项的勾选）` : ''}`
+            ? t('{time} 已重新核对，没有变化', { time })
+            : t('{time} 已重新核对：{gained} 项变为可清理，{lost} 项不再能清理', { time, gained, lost }) + (unselected ? t('（已取消其中 {n} 项的勾选）', { n: unselected }) : '')
       }
       view = v
       if (!v.groups.some((g) => g.ruleId === activeId) && v.groups.length > 0) selectGroup(v.groups[0])
@@ -107,18 +109,18 @@
 
 {#if error}
   <div class="center">
-    <p>生成候选失败：{error}</p>
-    <button onclick={onBack}>返回扫描结果</button>
+    <p>{t('生成候选失败：{error}', { error: bt(error) })}</p>
+    <button onclick={onBack}>{t('返回扫描结果')}</button>
   </div>
 {:else if !view}
   <div class="center">
     <div class="spinner" aria-hidden="true"></div>
-    <p>正在按规则核对文件…（会检查文件是否被占用、是否有变化）</p>
+    <p>{t('正在按规则核对文件…（会检查文件是否被占用、是否有变化）')}</p>
   </div>
 {:else}
   <div class="decide">
     <aside class="panel left">
-      <h3>规则候选</h3>
+      <h3>{t('规则候选')}</h3>
       {#each groups as g}
         {@const risk = riskLabel(g.risk)}
         <button class="card" class:active={g.ruleId === activeId} onclick={() => selectGroup(g)}>
@@ -126,22 +128,23 @@
             <strong>{ruleName(g.ruleId, g.description)}</strong>
             <span class="badge {risk.tone}">{risk.label}</span>
           </span>
-          <span class="muted small">可清理 {g.executable} / 共 {g.candidates} 个</span>
+          <span class="muted small">{t('可清理 {n} / 共 {total} 个', { n: g.executable, total: g.candidates })}</span>
           <span class="size">{bytes(g.executableAllocation)}</span>
         </button>
       {/each}
       {#each missingRules as r}
-        <div class="muted small none">{ruleName(r.ruleId, r.description)} · 未发现</div>
+        <div class="muted small none">{t('{name} · 未发现', { name: ruleName(r.ruleId, r.description) })}</div>
       {/each}
 
     </aside>
 
     <section class="panel right">
       {#if !active}
-        <p class="muted empty">没有找到符合规则的文件。目前内置规则只覆盖用户临时文件、npm / pip / Go 缓存。</p>
+        <p class="muted empty">{t('没有找到符合规则的文件。目前内置规则只覆盖用户临时文件、npm / pip / Go 缓存。')}</p>
       {:else}
         {@const g = active}
         {@const risk = riskLabel(g.risk)}
+        {@const parts = t('只选 {n} 天以前修改的', { n: '\u0000' }).split('\u0000')}
         <div class="head">
           <div class="row">
             <h2>{ruleName(g.ruleId, g.description)}</h2>
@@ -150,17 +153,17 @@
           <p class="muted">{ruleExplain(g.ruleId, g.minAgeDays, g.description)}</p>
         </div>
         <div class="toolbar">
-          <button onclick={() => selectAll(g)}>全选可清理项</button>
+          <button onclick={() => selectAll(g)}>{t('全选可清理项')}</button>
           <span class="age">
-            只选 <input type="number" min="0" bind:value={ageDays} /> 天以前修改的
-            <button onclick={() => applyAge(g)}>应用</button>
+            {parts[0]}<input type="number" min="0" bind:value={ageDays} />{parts[1]}
+            <button onclick={() => applyAge(g)}>{t('应用')}</button>
           </span>
-          <button onclick={() => clearGroup(g)}>清空本组</button>
-          <label><input type="checkbox" bind:checked={hideBlocked} /> 隐藏不能清理的项</label>
-          <span class="muted">已选本组 {groupSelected} 个</span>
+          <button onclick={() => clearGroup(g)}>{t('清空本组')}</button>
+          <label><input type="checkbox" bind:checked={hideBlocked} /> {t('隐藏不能清理的项')}</label>
+          <span class="muted">{t('已选本组 {n} 个', { n: groupSelected })}</span>
         </div>
         <div class="list-head muted">
-          <span>选择</span><span>名称</span><span class="num">占用</span><span>修改</span><span>状态</span>
+          <span>{t('选择')}</span><span>{t('名称')}</span><span class="num">{t('占用')}</span><span>{t('修改')}</span><span>{t('状态')}</span>
         </div>
         <div class="list" role="table">
           {#each visibleItems.slice(0, shown) as item (item.path)}
@@ -169,7 +172,7 @@
               <div class="line">
                 <input
                   type="checkbox"
-                  aria-label="选择 {item.name}"
+                  aria-label={t('选择 {name}', { name: item.name })}
                   disabled={!item.executable}
                   checked={selection.has(item.path)}
                   onclick={(e) => e.stopPropagation()}
@@ -183,7 +186,7 @@
                 <span title={item.lastWriteTime}>{ageText(item.lastWriteTime)}</span>
                 <span>
                   {#if item.executable}
-                    <span class="badge safe">可清理</span>
+                    <span class="badge safe">{t('可清理')}</span>
                   {:else}
                     <span class="warn small">{blockedReason(item.evidence, g.ruleId)}</span>
                   {/if}
@@ -203,21 +206,21 @@
             </div>
           {/each}
           {#if visibleItems.length > shown}
-            <div class="more"><button onclick={() => (shown += PAGE)}>再显示 {PAGE} 项</button></div>
+            <div class="more"><button onclick={() => (shown += PAGE)}>{t('再显示 {n} 项', { n: PAGE })}</button></div>
           {/if}
         </div>
       {/if}
     </section>
 
     <footer class="bar">
-      <strong>已选 {selection.size} 个文件，共 {bytes(selectedBytes)}</strong>
-      <span class="muted small">移到隔离区不会立刻腾出空间；确认和执行会在下一步开放。</span>
-      <button disabled={refreshing} onclick={() => load(true)} title="重新检查文件是否被占用、是否有变化">
-        {refreshing ? '正在检查…' : '重新检查文件状态'}
+      <strong>{t('已选 {n} 个文件，共 {size}', { n: selection.size, size: bytes(selectedBytes) })}</strong>
+      <span class="muted small">{t('移到隔离区不会立刻腾出空间；确认和执行会在下一步开放。')}</span>
+      <button disabled={refreshing} onclick={() => load(true)} title={t('重新检查文件是否被占用、是否有变化')}>
+        {refreshing ? t('正在检查…') : t('重新检查文件状态')}
       </button>
       {#if checkResult}<span class="small check">{checkResult}</span>{/if}
       <span class="next">
-        <button class="primary" disabled={selection.size === 0} onclick={() => openConfirm(selection)}>下一步：确认执行</button>
+        <button class="primary" disabled={selection.size === 0} onclick={() => openConfirm(selection)}>{t('下一步：确认执行')}</button>
       </span>
     </footer>
   </div>

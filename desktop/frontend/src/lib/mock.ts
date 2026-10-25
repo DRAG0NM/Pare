@@ -431,6 +431,7 @@ export const mockBackend: Backend = {
     await new Promise((resolve) => setTimeout(resolve, 400))
     return 'C:\\Users\\me\\Desktop\\pare-log-demo.txt'
   },
+  async SetLanguage() {},
   async OpenIssuePage() {
     window.open('https://github.com/DRAG0NM/Pare/issues/new', '_blank')
   },

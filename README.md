@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>English</b> · <a href="README.zh-CN.md">简体中文</a>
+  <b>English</b> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a>
 </p>
 
 <p align="center">
@@ -57,6 +57,8 @@ Commercial cleaners clear the caches everyone has. The space that actually goes 
 3. Pick a drive. When you open the clean stage for the first time, Pare asks for an API key from an OpenAI-compatible provider. DeepSeek is preselected; Qwen, Kimi, Zhipu, OpenAI and custom endpoints are also available.
 4. Start a deep dive, review the findings, choose an option for each, and confirm.
 
+**Languages.** The interface is available in Simplified Chinese, Traditional Chinese, English, Japanese, French and German, and can be switched in Settings. The AI writes its findings in the chosen language too.
+
 **Requirements.** Windows 11 x64 (tested). Windows 10 with the [WebView2 runtime](https://developer.microsoft.com/microsoft-edge/webview2/) should work but has not been tested. The executable is not code-signed yet, so SmartScreen may ask you to confirm the first launch.
 
 **Cost and time.** A standard-depth run on the development machine took about two minutes and 1.3–1.5 million tokens. With DeepSeek's prompt caching, five runs cost ¥0.73 in total, about ¥0.15 each. Deeper levels take longer.
@@ -93,7 +95,6 @@ Commercial cleaners clear the caches everyone has. The space that actually goes 
 - The model's judgement of whether an application still needs a file is not always consistent. Items marked "需谨慎" (careful) deserve a closer look, and quarantine keeps them recoverable.
 - Templates and commands cannot be undone by Pare. Read the confirmation carefully.
 - Directory enumeration cannot see NTFS metadata (`$MFT` and friends) or reserved storage, so a whole-volume scan lists less than the used space. Tools that read the MFT, such as WizTree, can show these entries.
-- The interface is in Simplified Chinese.
 
 ## Build from source
 

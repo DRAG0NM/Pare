@@ -1,3 +1,5 @@
+import { numberLocale, t } from './i18n.svelte'
+
 const units = ['B', 'KB', 'MB', 'GB', 'TB']
 
 // Sizes use 1024-based units with Windows Explorer's labels.
@@ -13,7 +15,7 @@ export function bytes(value: number): string {
 }
 
 export function count(value: number): string {
-  return value.toLocaleString('zh-CN')
+  return value.toLocaleString(numberLocale())
 }
 
 export function percent(part: number, whole: number): string {
@@ -23,7 +25,9 @@ export function percent(part: number, whole: number): string {
 }
 
 export function seconds(value: number): string {
-  return value < 60 ? `${value.toFixed(1)} 秒` : `${Math.floor(value / 60)} 分 ${Math.round(value % 60)} 秒`
+  return value < 60
+    ? t('{n} 秒', { n: value.toFixed(1) })
+    : t('{m} 分 {s} 秒', { m: Math.floor(value / 60), s: Math.round(value % 60) })
 }
 
 // Keeps both ends of a long path visible.
