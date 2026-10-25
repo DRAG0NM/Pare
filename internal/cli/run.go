@@ -19,11 +19,12 @@ import (
 	"github.com/DRAG0NM/Pare/internal/report"
 	"github.com/DRAG0NM/Pare/internal/rules"
 	"github.com/DRAG0NM/Pare/internal/scanner"
+	"github.com/DRAG0NM/Pare/internal/serve"
 )
 
-const version = "0.1.0"
+const version = "0.3.0"
 
-const usage = "Usage: pare <command> [options]\n\nCommands:\n  scan    Scan a directory tree and write a JSON report\n  plan    Match cleanup rules against a scan report and write a JSON plan\n  apply   Move a plan's executable files into quarantine\n  undo    Restore files from a quarantine manifest\n"
+const usage = "Usage: pare <command> [options]\n\nCommands:\n  scan    Scan a directory tree and write a JSON report\n  plan    Match cleanup rules against a scan report and write a JSON plan\n  apply   Move a plan's executable files into quarantine\n  undo    Restore files from a quarantine manifest\n  serve   Serve agent hosts over line-delimited JSON on stdin/stdout\n"
 
 func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if len(args) == 1 && args[0] == "--version" {
@@ -41,6 +42,13 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	}
 	if len(args) > 0 && args[0] == "undo" {
 		return runUndo(ctx, args[1:], stdout, stderr, time.Now())
+	}
+	if len(args) == 1 && args[0] == "serve" {
+		if err := serve.New(serve.Options{Version: version}).Run(ctx, os.Stdin, stdout); err != nil {
+			fmt.Fprintln(stderr, err)
+			return 4
+		}
+		return 0
 	}
 
 	fmt.Fprint(stderr, usage)

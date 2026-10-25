@@ -23,7 +23,7 @@ func TestRunVersion(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("Run() exit code = %d, want 0; stderr: %s", code, stderr.String())
 	}
-	if got, want := stdout.String(), "pare 0.1.0\n"; got != want {
+	if got, want := stdout.String(), "pare 0.3.0\n"; got != want {
 		t.Fatalf("stdout = %q, want %q", got, want)
 	}
 	if stderr.Len() != 0 {

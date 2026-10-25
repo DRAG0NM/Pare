@@ -78,3 +78,27 @@ Files that fail a check are `skipped` and stay where they are. The quarantine de
 `undo` restores `quarantined` items, and `intent` items left by an interrupted run. It recreates missing parent directories, never replaces a file at the original path, and records such items as `conflict`; running `undo` again after clearing the path restores them.
 
 Exit codes: 0 every item moved (or restored), 2 invalid arguments or missing confirmation, 3 some items skipped, failed or in conflict, 4 plan or manifest rejected or unreadable.
+
+## Serve
+
+```powershell
+.\pare.exe serve
+```
+
+`pare serve` is for agent hosts such as the Pare-DSH plugin. It is a long-running process that keeps one scan index in memory and speaks line-delimited JSON over standard input and output, using the protocol `pare.serve/1`. It takes no other arguments and exits with code 0 when its input closes.
+
+Each request is one line, `{"id","method","params"}`, and each answer is one line, `{"id","result"}` or `{"id","error"}` with a message string. Requests are handled one at a time, in order, so a call made after `scan` sees that scan's index.
+
+| Method | What it does |
+|---|---|
+| `hello` | Returns the protocol name, the core version, the read-only investigation tools (name, description, parameter schema) and the supported action templates |
+| `scan` | Scans an absolute Windows path and keeps the index; returns a summary. A new scan discards every cleanup prepared before it |
+| `tool` | Runs one investigation tool (`name`, `args`) against the current index; needs a scan first |
+| `read_sensitive` | Reads the text of a file marked sensitive, for this one call only |
+| `prepare` | Takes paths to quarantine and action templates; returns an `id`, a `digest`, an expiry and a per-item preview. Nothing changes |
+| `execute` | Runs a prepared cleanup, given its `id` and `digest`: quarantines first, then templates |
+| `batches` | Lists quarantine batches on local drives |
+| `undo` | Restores a quarantine batch, given its `manifest` path |
+| `purge` | Permanently deletes a quarantine batch, given its `manifest` path |
+
+The host is expected to get the user's approval before `execute`, `undo` and `purge`, and before `read_sensitive`. The core does not rely on that: it refuses protected locations, applies the same evidence and per-item checks as `apply`, and rejects a preview whose digest does not match, that is older than 30 minutes, that was already executed (a cleanup is marked used before it runs), or that is unknown. `undo` and `purge` only accept a `manifest.json` inside a Pare quarantine.
