@@ -1,10 +1,8 @@
 <script lang="ts">
-  import { backend, type ActionResult, type PreparedAction } from '../lib/api'
+  import type { ActionResult, PreparedAction } from '../lib/api'
   import { close, exec, execute, GONE_REASON, isGone } from '../lib/execution.svelte'
   import { bytes, middle } from '../lib/format'
   import { execText } from '../lib/labels'
-
-  let { onUndoPage, onRescan, onContinue }: { onUndoPage: () => void; onRescan: () => void; onContinue: () => void } = $props()
 
   const MAX_ITEMS = 50
   const kindBadge: Record<PreparedAction['kind'], { text: string; tone: string }> = {
@@ -18,9 +16,6 @@
 
   let readCmd = $state<Record<string, boolean>>({})
   let irreversibleAck = $state(false)
-  let purge = $state<'idle' | 'ask' | 'busy' | 'done'>('idle')
-  let purgeFreed = $state(0)
-  let purgeError = $state('')
   let goneOpen = $state<Record<string, boolean>>({})
 
   const actions = $derived(exec.preview?.actions ?? [])
@@ -37,35 +32,8 @@
     if (!on) exec.accepted[a.key] = false
   }
 
-  async function doPurge() {
-    purge = 'busy'
-    purgeError = ''
-    try {
-      let freed = 0
-      for (const m of exec.report?.manifests ?? []) freed += (await backend.PurgeBatch(m)).freedBytes
-      purgeFreed = freed
-      purge = 'done'
-    } catch (e) {
-      purgeError = String(e).replace(/^Error:\s*/, '')
-      purge = 'idle'
-    }
-  }
-
-  function goUndo() {
-    close()
-    onUndoPage()
-  }
-  function rescan() {
-    close()
-    onRescan()
-  }
-  function continueRun() {
-    // App closes the dialog itself; this only hands over control.
-    onContinue()
-  }
-
   function onKey(e: KeyboardEvent) {
-    if (e.key === 'Escape' && (exec.phase === 'confirm' || exec.phase === 'done')) close()
+    if (e.key === 'Escape' && exec.phase === 'confirm') close()
   }
 </script>
 
@@ -76,7 +44,7 @@
     {#if exec.phase === 'preparing'}
       <div class="center"><span class="spinner" aria-hidden="true"></span><span>正在核对每一项的最新状态…</span></div>
     {:else if exec.phase === 'confirm'}
-      <h2>确认执行</h2>
+      <h2>{exec.mode === 'prevent' ? '确认执行：防止再长出来' : '确认执行'}</h2>
       {#if exec.error}<p class="warn">{exec.error}</p>{/if}
       {#if actions.length === 0 && !exec.error}<p class="muted">没有可执行的项目。</p>{/if}
       <div class="list">
@@ -143,11 +111,11 @@
       </div>
       <footer>
         <div class="summary">
-          <strong>将执行 {accepted.length} 项，预计回收 {bytes(total)}</strong>
+          <strong>将执行 {accepted.length} 项{exec.mode === 'clean' ? `，预计回收 ${bytes(total)}` : ''}</strong>
           {#if irreversible > 0}
             <label class="inline small warn"><input type="checkbox" bind:checked={irreversibleAck} />我知道其中 {irreversible} 项执行后无法撤回</label>
           {/if}
-          <span class="muted small">移入隔离区的项目可以在「隔离区」页恢复；隔离不会立刻腾出空间，清空后才会释放。</span>
+          {#if exec.mode === 'clean'}<span class="muted small">移入隔离区的项目可以在「隔离区」页恢复；隔离不会立刻腾出空间，清空后才会释放。</span>{/if}
         </div>
         <div class="buttons">
           <button onclick={close}>取消</button>
@@ -170,53 +138,6 @@
           </div>
         {/each}
       </div>
-    {:else if exec.phase === 'done'}
-      <h2>执行完成</h2>
-      {#if exec.error}<p class="warn">{exec.error}</p>{/if}
-      <p class="lead">
-        {#if (exec.report?.freedBytes ?? 0) > 0}C 盘可用空间增加了 {bytes(exec.report!.freedBytes)}{:else}空间变化不明显（移入隔离区的文件仍在同一块盘上）{/if}
-      </p>
-      <div class="list">
-        {#each exec.report?.results ?? [] as r (r.key)}
-          <div class="result">
-            <span class="ic" class:bad={r.status === 'failed'}>{statusIcon[r.status]}</span>
-            <div class="rbody">
-              <strong class="ell">{r.label}</strong>
-              <span class="small" class:warn={r.status === 'failed' || r.status === 'partial'}>{execText(r.detail)}</span>
-              {#if r.output}
-                <details>
-                  <summary class="small muted">查看输出</summary>
-                  <pre class="mono code">{r.output}</pre>
-                </details>
-              {/if}
-            </div>
-          </div>
-        {/each}
-      </div>
-      <div class="next-steps">
-        <strong class="small">下一步</strong>
-        <div class="buttons left">
-          {#if (exec.report?.manifests.length ?? 0) > 0 && purge !== 'done'}
-            {#if purge === 'ask' || purge === 'busy'}
-              <span class="warn small">这些文件将被永久删除，无法恢复。确定？</span>
-              <button disabled={purge === 'busy'} onclick={() => (purge = 'idle')}>先不清空</button>
-              <button class="primary" disabled={purge === 'busy'} onclick={doPurge}>{purge === 'busy' ? '清空中…' : '确定清空'}</button>
-            {:else}
-              <button class="primary" onclick={() => (purge = 'ask')}>立即清空这批（释放空间）</button>
-            {/if}
-          {/if}
-          <button onclick={goUndo}>去隔离区</button>
-          <button onclick={rescan}>重新扫描（更新结果）</button>
-          <button onclick={continueRun}>继续深挖剩下的问题</button>
-        </div>
-        <span class="muted small">清理后原来的扫描结果已经过时，重新扫描可以看到最新占用。</span>
-      </div>
-      {#if purge === 'done'}<p class="lead">已永久清空，释放了 {bytes(purgeFreed)}。</p>{/if}
-      {#if purgeError}<p class="warn small">{purgeError}</p>{/if}
-      <footer>
-        <div class="summary"></div>
-        <div class="buttons"><button onclick={close}>完成</button></div>
-      </footer>
     {/if}
   </div>
 </div>
@@ -262,9 +183,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .lead {
-    font-weight: 600;
   }
   .center {
     display: flex;
@@ -328,17 +246,6 @@
     background: transparent;
     color: var(--muted);
     padding: 0;
-  }
-  .next-steps {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    border-top: 1px solid var(--border);
-    padding-top: 8px;
-  }
-  .buttons.left {
-    justify-content: flex-start;
-    align-items: center;
   }
   .badge {
     font-size: 11px;
@@ -436,16 +343,10 @@
     text-align: center;
     flex: none;
   }
-  .ic.bad {
-    color: var(--warn);
-  }
   .rbody {
     min-width: 0;
     flex: 1;
     display: flex;
     flex-direction: column;
-  }
-  details pre {
-    max-height: 140px;
   }
 </style>

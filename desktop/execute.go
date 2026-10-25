@@ -23,6 +23,8 @@ import (
 type ChosenAction struct {
 	FindingID   string `json:"findingId"`
 	ActionIndex int    `json:"actionIndex"`
+	// Prevent picks from the finding's prevention actions instead of its actions.
+	Prevent bool `json:"prevent"`
 }
 
 type QuarantineItemView struct {
@@ -55,18 +57,37 @@ type ExecutionPreview struct {
 }
 
 type ActionResult struct {
-	Key    string `json:"key"`
-	Label  string `json:"label"`
-	Status string `json:"status"` // done, partial, skipped, failed
-	Detail string `json:"detail"`
-	Output string `json:"output"`
+	Key          string `json:"key"`
+	FindingTitle string `json:"findingTitle"`
+	Kind         string `json:"kind"`
+	Label        string `json:"label"`
+	Status       string `json:"status"` // done, partial, skipped, failed
+	Detail       string `json:"detail"`
+	Output       string `json:"output"`
+	// Bytes is what was moved into quarantine, or the estimate for a template or
+	// command that finished.
+	Bytes uint64 `json:"bytes"`
+}
+
+// RegrowthTip repeats what a handled finding said about growing back, so the summary can
+// offer its prevention actions.
+type RegrowthTip struct {
+	FindingID    string `json:"findingId"`
+	FindingTitle string `json:"findingTitle"`
+	Text         string `json:"text"`
 }
 
 type ExecutionReport struct {
-	Results    []ActionResult `json:"results"`
-	Manifests  []string       `json:"manifests"`
-	FreedBytes int64          `json:"freedBytes"`
-	Error      string         `json:"error"`
+	Time             time.Time      `json:"time"`
+	Volume           string         `json:"volume"`
+	FreeBefore       uint64         `json:"freeBefore"`
+	FreeAfter        uint64         `json:"freeAfter"`
+	Results          []ActionResult `json:"results"`
+	Manifests        []string       `json:"manifests"`
+	FreedBytes       int64          `json:"freedBytes"`
+	QuarantinedBytes uint64         `json:"quarantinedBytes"`
+	Tips             []RegrowthTip  `json:"tips"`
+	Error            string         `json:"error"`
 }
 
 // preparedRun keeps what PrepareExecution built, so Execute runs exactly what was shown.
@@ -76,6 +97,7 @@ type preparedRun struct {
 	rules    *model.Plan
 	keyPaths map[string][]string
 	runs     map[string]actions.Prepared
+	findings map[string]advisor.Finding // by action key
 }
 
 const rulesKey = "rules"
@@ -91,16 +113,23 @@ func (a *App) PrepareExecution(chosen []ChosenAction, rulePaths []string) (Execu
 		byID[finding.ID] = finding
 	}
 
-	run := &preparedRun{keyPaths: map[string][]string{}, runs: map[string]actions.Prepared{}}
+	run := &preparedRun{keyPaths: map[string][]string{}, runs: map[string]actions.Prepared{}, findings: map[string]advisor.Finding{}}
 	var selections []plan.Selection
 	for _, choice := range chosen {
 		finding, ok := byID[choice.FindingID]
-		if !ok || choice.ActionIndex < 0 || choice.ActionIndex >= len(finding.Actions) {
+		list, prefix := finding.Actions, ":"
+		if choice.Prevent {
+			list, prefix = finding.Prevention, ":p"
+		}
+		if !ok || choice.ActionIndex < 0 || choice.ActionIndex >= len(list) {
 			continue
 		}
-		action := finding.Actions[choice.ActionIndex]
+		action := list[choice.ActionIndex]
+		if choice.Prevent && action.Kind == advisor.ActionQuarantine {
+			continue
+		}
 		view := PreparedAction{
-			Key:          choice.FindingID + ":" + strconv.Itoa(choice.ActionIndex),
+			Key:          choice.FindingID + prefix + strconv.Itoa(choice.ActionIndex),
 			FindingTitle: finding.Title,
 			Kind:         action.Kind,
 			Label:        action.Label,
@@ -133,6 +162,7 @@ func (a *App) PrepareExecution(chosen []ChosenAction, rulePaths []string) (Execu
 		default:
 			view.Steps = action.Paths
 		}
+		run.findings[view.Key] = finding
 		run.actions = append(run.actions, view)
 	}
 
@@ -230,18 +260,25 @@ func (a *App) Execute(accepted []string) error {
 }
 
 func (a *App) execute(run *preparedRun, accepted map[string]bool, root string) ExecutionReport {
-	report := ExecutionReport{Results: []ActionResult{}, Manifests: []string{}}
 	volume := filepath.VolumeName(root) + `\`
 	_, freeBefore, _ := volumeSpace(volume)
+	report := ExecutionReport{Time: time.Now(), Volume: volume, FreeBefore: freeBefore, Results: []ActionResult{}, Manifests: []string{}, Tips: []RegrowthTip{}}
+	byKey := map[string]PreparedAction{}
+	for _, action := range run.actions {
+		byKey[action.Key] = action
+	}
+	// newResult fills in what the summary shows about the action behind key.
+	newResult := func(key string) ActionResult {
+		action := byKey[key]
+		return ActionResult{Key: key, FindingTitle: action.FindingTitle, Kind: action.Kind, Label: action.Label}
+	}
 	progress := func(result ActionResult) {
-		runtime.EventsEmit(a.ctx, "exec:progress", result)
+		if a.ctx != nil {
+			runtime.EventsEmit(a.ctx, "exec:progress", result)
+		}
 	}
 
 	quarantine := func(p *model.Plan, keys []string, paths []string) {
-		label := map[string]string{}
-		for _, action := range run.actions {
-			label[action.Key] = action.Label
-		}
 		executable := map[string]bool{}
 		for _, item := range p.Items {
 			if item.Executable {
@@ -260,7 +297,8 @@ func (a *App) execute(run *preparedRun, accepted map[string]bool, root string) E
 		}
 		if len(selected) == 0 {
 			for _, key := range keys {
-				result := ActionResult{Key: key, Label: label[key], Status: "skipped", Detail: "没有可以执行的项目"}
+				result := newResult(key)
+				result.Status, result.Detail = "skipped", "没有可以执行的项目"
 				report.Results = append(report.Results, result)
 				progress(result)
 			}
@@ -275,7 +313,7 @@ func (a *App) execute(run *preparedRun, accepted map[string]bool, root string) E
 			states[strings.ToLower(item.OriginalPath)] = item
 		}
 		for _, key := range keys {
-			result := ActionResult{Key: key, Label: label[key]}
+			result := newResult(key)
 			moved, total := 0, 0
 			var problems []string
 			for _, path := range run.keyPaths[key] {
@@ -286,6 +324,7 @@ func (a *App) execute(run *preparedRun, accepted map[string]bool, root string) E
 				total++
 				if item.State == model.StateQuarantined {
 					moved++
+					result.Bytes += uint64(item.AllocationSize)
 				} else {
 					problems = append(problems, filepath.Base(item.OriginalPath)+"："+item.Detail)
 				}
@@ -300,6 +339,7 @@ func (a *App) execute(run *preparedRun, accepted map[string]bool, root string) E
 			default:
 				result.Status, result.Detail = "skipped", strings.Join(problems, "；")
 			}
+			report.QuarantinedBytes += result.Bytes
 			report.Results = append(report.Results, result)
 			progress(result)
 		}
@@ -334,18 +374,32 @@ func (a *App) execute(run *preparedRun, accepted map[string]bool, root string) E
 		if !ok || !accepted[action.Key] {
 			continue
 		}
-		progress(ActionResult{Key: action.Key, Label: action.Label, Status: "running"})
+		running := newResult(action.Key)
+		running.Status = "running"
+		progress(running)
 		output, err := actions.Run(context.Background(), prepared)
-		result := ActionResult{Key: action.Key, Label: action.Label, Status: "done", Output: output}
+		result := newResult(action.Key)
+		result.Status, result.Output, result.Bytes = "done", output, action.Bytes
 		if err != nil {
-			result.Status, result.Detail = "failed", err.Error()
+			result.Status, result.Detail, result.Bytes = "failed", err.Error(), 0
 		}
 		report.Results = append(report.Results, result)
 		progress(result)
 	}
 
 	_, freeAfter, _ := volumeSpace(volume)
+	report.FreeAfter = freeAfter
 	report.FreedBytes = int64(freeAfter) - int64(freeBefore)
+	seen := map[string]bool{}
+	for _, result := range report.Results {
+		finding, ok := run.findings[result.Key]
+		if !ok || seen[finding.ID] || strings.Contains(result.Key, ":p") || (result.Status != "done" && result.Status != "partial") || strings.TrimSpace(finding.Regrowth) == "" {
+			continue
+		}
+		seen[finding.ID] = true
+		report.Tips = append(report.Tips, RegrowthTip{FindingID: finding.ID, FindingTitle: finding.Title, Text: finding.Regrowth})
+	}
+	a.recordCleanup(report)
 	return report
 }
 
@@ -398,5 +452,7 @@ func (a *App) PurgeBatch(manifest string) (PurgeResult, error) {
 	_, before, _ := volumeSpace(volume)
 	execution, err := executor.Purge(context.Background(), manifest, time.Now())
 	_, after, _ := volumeSpace(volume)
-	return PurgeResult{Execution: execution, FreedBytes: int64(after) - int64(before)}, err
+	result := PurgeResult{Execution: execution, FreedBytes: int64(after) - int64(before)}
+	a.recordPurge(volume, execution, result.FreedBytes)
+	return result, err
 }

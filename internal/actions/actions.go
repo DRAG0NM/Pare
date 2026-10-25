@@ -118,6 +118,25 @@ var builders = map[string]func(map[string]string) (Prepared, error){
 			Warnings: []string{"会删除较早的系统日志", irreversible},
 		}, nil
 	},
+	"wsl_journal_limit": func(params map[string]string) (Prepared, error) {
+		name, err := distro(params)
+		if err != nil {
+			return Prepared{}, err
+		}
+		size := strings.ToUpper(params["size"])
+		if size == "" {
+			size = "200M"
+		}
+		if !logSize.MatchString(size) {
+			return Prepared{}, fmt.Errorf("日志大小 %q 不合法，例如 200M", params["size"])
+		}
+		// size is validated above, so it is safe inside the script.
+		script := "mkdir -p /etc/systemd/journald.conf.d && printf '[Journal]\\nSystemMaxUse=" + size + "\\n' > /etc/systemd/journald.conf.d/pare.conf && systemctl restart systemd-journald"
+		return Prepared{
+			Steps:    [][]string{{"wsl.exe", "-d", name, "-u", "root", "-e", "sh", "-c", script}},
+			Warnings: []string{"会在 " + name + " 里写入 /etc/systemd/journald.conf.d/pare.conf，之后日志最多占用 " + size, "删除这个文件即可恢复原来的设置"},
+		}, nil
+	},
 	"wsl_apt_clean": func(params map[string]string) (Prepared, error) {
 		name, err := distro(params)
 		if err != nil {

@@ -9,10 +9,11 @@
   import AISettings from './components/AISettings.svelte'
   import UndoPage from './components/UndoPage.svelte'
   import ConfirmExecution from './components/ConfirmExecution.svelte'
-  import { close as closeExec, exec, initExecution, setRulesDoneHandler } from './lib/execution.svelte'
+  import CleanReport from './components/CleanReport.svelte'
+  import { exec, initExecution, setRulesDoneHandler, setSummaryHandler } from './lib/execution.svelte'
   import { answerConsent, initInvestigation, inv, resetInvestigation, startInvestigation } from './lib/investigation.svelte'
 
-  type View = 'home' | 'scanning' | 'overview' | 'decide' | 'undo'
+  type View = 'home' | 'scanning' | 'overview' | 'decide' | 'report' | 'undo'
 
   let view = $state<View>('home')
   let target = $state('')
@@ -56,6 +57,7 @@
     initInvestigation()
     initExecution()
     setRulesDoneHandler(() => selection.clear())
+    setSummaryHandler(() => (view = 'report'))
     const offProgress = onEvent<Progress>('scan:progress', (p) => (progress = p))
     const offDone = onEvent<ScanSummary>('scan:done', (s) => {
       if (s.cancelled) {
@@ -91,7 +93,6 @@
   }
 
   function continueInvestigation() {
-    closeExec()
     decideTab = 'ai'
     view = 'decide'
     startInvestigation(true)
@@ -102,7 +103,7 @@
     { id: 'decide', label: '清理', hint: '让 AI 深挖空间浪费，或按规则清理常规缓存' },
     { id: 'undo', label: '隔离区', hint: '撤回清理过的文件，或永久清空' },
   ]
-  const stageIndex = $derived(view === 'decide' ? 1 : view === 'undo' ? 2 : 0)
+  const stageIndex = $derived(view === 'decide' || view === 'report' ? 1 : view === 'undo' ? 2 : 0)
 
   // 扫描 always works: without a scan result it goes back to the drive list.
   function goStage(i: number) {
@@ -142,6 +143,14 @@
       <Scanning {target} {progress} onCancel={() => backend.CancelScan()} />
     {:else if view === 'decide'}
       <Decide {selection} bind:tab={decideTab} root={summary?.root ?? target} onOpenSettings={openSettings} onBack={() => (view = 'overview')} />
+    {:else if view === 'report' && exec.summary}
+      <CleanReport
+        report={exec.summary}
+        onUndoPage={() => (view = 'undo')}
+        onRescan={() => scan(summary?.root ?? target)}
+        onContinue={continueInvestigation}
+        onBack={() => (view = 'decide')}
+      />
     {:else if view === 'undo'}
       <UndoPage />
     {:else if summary}
@@ -155,11 +164,7 @@
 {/if}
 
 {#if exec.phase !== 'idle'}
-  <ConfirmExecution
-    onUndoPage={() => (view = 'undo')}
-    onRescan={() => scan(summary?.root ?? target)}
-    onContinue={continueInvestigation}
-  />
+  <ConfirmExecution />
 {/if}
 
 {#if inv.pendingConsent}

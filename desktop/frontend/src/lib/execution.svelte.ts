@@ -1,27 +1,43 @@
 // Shared state of the confirm-and-execute flow, so both Decide tabs open the same dialog.
-import { backend, onEvent, type ActionResult, type ExecutionPreview, type ExecutionReport } from './api'
+import { backend, onEvent, type ActionResult, type ChosenAction, type ExecutionPreview, type ExecutionReport } from './api'
 import { inv } from './investigation.svelte'
 
 export const exec = $state({
-  phase: 'idle' as 'idle' | 'preparing' | 'confirm' | 'running' | 'done',
+  phase: 'idle' as 'idle' | 'preparing' | 'confirm' | 'running',
+  // A cleanup run ends on the summary page; a prevention run, started from that page,
+  // only adds its results there.
+  mode: 'clean' as 'clean' | 'prevent',
   preview: null as ExecutionPreview | null,
   accepted: {} as Record<string, boolean>,
   progress: {} as Record<string, ActionResult>,
-  report: null as ExecutionReport | null,
+  // summary is the report of the latest cleanup run, shown on the summary page.
+  summary: null as ExecutionReport | null,
+  // prevented holds results of prevention actions by action key ("f1:p0").
+  prevented: {} as Record<string, ActionResult>,
   error: '',
 })
 
 let initialized = false
 let onRulesDone: (() => void) | undefined
+let onSummary: (() => void) | undefined
 
 // App registers this to clear the rule selection after a run that included rule items.
 export function setRulesDoneHandler(fn: () => void) {
   onRulesDone = fn
 }
 
+// App registers this to switch to the summary page when a cleanup run finishes.
+export function setSummaryHandler(fn: () => void) {
+  onSummary = fn
+}
+
 export const GONE_REASON = 'file no longer exists'
 export function isGone(a: { items: { reason: string }[] }) {
   return a.items.length > 0 && a.items.every((it) => it.reason === GONE_REASON)
+}
+
+export function isPreventionKey(key: string) {
+  return key.includes(':p')
 }
 
 export function initExecution() {
@@ -31,9 +47,14 @@ export function initExecution() {
     exec.progress[r.key] = r
   })
   onEvent<ExecutionReport>('exec:done', (r) => {
-    exec.report = r
-    if (r.error) exec.error = r.error
-    exec.phase = 'done'
+    exec.phase = 'idle'
+    exec.preview = null
+    if (exec.mode === 'prevent') {
+      for (const res of r.results ?? []) exec.prevented[res.key] = res
+      return
+    }
+    exec.summary = r
+    exec.prevented = {}
     let hadRules = false
     for (const res of r.results ?? []) {
       if (res.key === 'rules') {
@@ -48,6 +69,7 @@ export function initExecution() {
       inv.chosen[id] = -1
     }
     if (hadRules) onRulesDone?.()
+    onSummary?.()
   })
 }
 
@@ -55,18 +77,15 @@ function clean(e: unknown) {
   return String(e).replace(/^Error:\s*/, '')
 }
 
-export async function openConfirm(rulePaths: Iterable<string>) {
-  const chosen = inv.findings
-    .map((f) => ({ findingId: f.id, actionIndex: inv.chosen[f.id] ?? 0 }))
-    .filter((c) => c.actionIndex >= 0)
+async function prepare(chosen: ChosenAction[], rulePaths: string[], mode: 'clean' | 'prevent') {
+  exec.mode = mode
   exec.error = ''
-  exec.report = null
   exec.progress = {}
   exec.accepted = {}
   exec.preview = null
   exec.phase = 'preparing'
   try {
-    const preview = await backend.PrepareExecution(chosen, [...rulePaths])
+    const preview = await backend.PrepareExecution(chosen, rulePaths)
     exec.preview = preview
     const accepted: Record<string, boolean> = {}
     for (const a of preview.actions) accepted[a.key] = a.runnable && !isGone(a) && (a.kind === 'quarantine' || a.kind === 'template')
@@ -77,6 +96,18 @@ export async function openConfirm(rulePaths: Iterable<string>) {
     exec.phase = 'confirm'
     exec.preview = { actions: [] }
   }
+}
+
+export function openConfirm(rulePaths: Iterable<string>) {
+  const chosen = inv.findings
+    .map((f) => ({ findingId: f.id, actionIndex: inv.chosen[f.id] ?? 0 }))
+    .filter((c) => c.actionIndex >= 0)
+  return prepare(chosen, [...rulePaths], 'clean')
+}
+
+// openPrevention shows one prevention action of a finding in the same confirmation dialog.
+export function openPrevention(findingId: string, actionIndex: number) {
+  return prepare([{ findingId, actionIndex, prevent: true }], [], 'prevent')
 }
 
 export async function execute() {
@@ -93,10 +124,10 @@ export async function execute() {
   }
 }
 
+// close dismisses the dialog; the summary page keeps its report.
 export function close() {
   exec.phase = 'idle'
   exec.preview = null
-  exec.report = null
   exec.progress = {}
   exec.accepted = {}
   exec.error = ''

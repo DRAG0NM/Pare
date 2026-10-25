@@ -1,5 +1,5 @@
 // A deterministic fake disk for running the UI in a browser. Never used in the desktop app.
-import type { ActionResult, BatchSummary, Execution, ExecutionPreview, PreparedAction, AIEvent, AISettingsView, Backend, Finding, CandidateGroup, CandidateItem, CandidateView, Drive, Evidence, NodeTree, NodeView, Progress, ScanSummary } from './api'
+import type { ActionResult, BatchSummary, HistoryEntry, Execution, ExecutionPreview, PreparedAction, AIEvent, AISettingsView, Backend, Finding, CandidateGroup, CandidateItem, CandidateView, Drive, Evidence, NodeTree, NodeView, Progress, ScanSummary } from './api'
 
 type FakeNode = { name: string; kind: string; size: number; children: FakeNode[]; incomplete?: boolean }
 
@@ -197,6 +197,7 @@ const mockFindings: Finding[] = [
       { kind: 'template', label: '开启稀疏磁盘', explain: '对该发行版启用 sparse，之后删除的文件会自动回收。', bytes: 4.3 * GB, template: 'wsl_set_sparse', params: { distro: 'Ubuntu-24.04' } },
       { kind: 'config', label: '修正 .wslconfig', explain: '把无效的 sparseVhd 键移到受支持的位置。', bytes: 0, paths: ['C:\\Users\\me\\.wslconfig'] },
     ],
+    prevention: [{ kind: 'template', label: '开启稀疏磁盘，之后自动回收', explain: '删除的文件会自动还给 Windows。', bytes: 0, template: 'wsl_set_sparse', params: { distro: 'Ubuntu-24.04' } }],
   },
   {
     id: 'f2',
@@ -213,6 +214,7 @@ const mockFindings: Finding[] = [
       { kind: 'quarantine', label: '移入隔离区', explain: '整个目录内容移走，可随时撤回。', bytes: 35.8 * GB, paths: ['C:\\Windows\\SystemTemp'] },
       { kind: 'manual', label: '在 G HUB 设置里关闭自动更新', explain: '避免之后再次堆积。', bytes: 0 },
     ],
+    prevention: [{ kind: 'manual', label: '关闭 G HUB 自动更新', explain: '打开 G HUB → 设置 → 关闭“自动更新”。', bytes: 0 }],
   },
   {
     id: 'f3',
@@ -229,6 +231,7 @@ const mockFindings: Finding[] = [
       { kind: 'quarantine', label: '移走 7 个其他平台的包', explain: '保留 win32-x64，其余移入隔离区。', bytes: 767 * MB, paths: lancedbPaths },
       { kind: 'command', label: '重新构建依赖', explain: '让 npm 只保留需要的平台。', bytes: 0, command: 'npm rebuild @lancedb/lancedb' },
     ],
+    prevention: [{ kind: 'command', label: '以后不装可选平台包', explain: '让 npm 默认跳过可选依赖，删除这项设置即可恢复。', bytes: 0, command: 'npm config set omit optional' }],
   },
   {
     id: 'r2-f1',
@@ -295,6 +298,10 @@ const mockBatches: BatchSummary[] = [
   { manifest: OLD_MANIFEST, createdAt: new Date(Date.now() - 5 * DAY).toISOString(), items: 3, quarantined: 3, restored: 0, purged: 0, other: 0, quarantinedBytes: 1.4 * GB },
 ]
 let execRunning = false
+let mockFree = 81.4 * GB
+const mockHistory: HistoryEntry[] = [
+  { time: new Date(Date.now() - 5 * DAY).toISOString(), kind: 'clean', volume: 'C:\\', freedBytes: 0, quarantinedBytes: 1.4 * GB, items: 2, actions: [{ findingTitle: '常规缓存（规则）', label: '移走 36 个缓存文件', kind: 'quarantine', status: 'done', bytes: 1.4 * GB }] },
+]
 
 function mockExecution(manifest: string, state: string): Execution {
   const b = mockBatches.find((x) => x.manifest === manifest)
@@ -305,9 +312,9 @@ function mockExecution(manifest: string, state: string): Execution {
   }
 }
 
-function prepareAction(f: Finding, index: number): PreparedAction {
-  const a = f.actions[index]
-  const base: PreparedAction = { key: `${f.id}:${index}`, findingTitle: f.title, kind: a.kind, label: a.label, explain: a.explain, bytes: a.bytes, items: [], steps: [], warnings: [], needsAdmin: false, runnable: true, error: '' }
+function prepareAction(f: Finding, index: number, prevent = false): PreparedAction {
+  const a = (prevent ? f.prevention ?? [] : f.actions)[index]
+  const base: PreparedAction = { key: `${f.id}:${prevent ? 'p' : ''}${index}`, findingTitle: f.title, kind: a.kind, label: a.label, explain: a.explain, bytes: a.bytes, items: [], steps: [], warnings: [], needsAdmin: false, runnable: true, error: '' }
   if (a.kind === 'quarantine') {
     const paths = a.paths ?? []
     base.items = paths.map((path) => {
@@ -340,7 +347,7 @@ export const mockBackend: Backend = {
     const actions: PreparedAction[] = []
     for (const c of chosen) {
       const f = mockFindings.find((x) => x.id === c.findingId)
-      if (f && f.actions[c.actionIndex]) actions.push(prepareAction(f, c.actionIndex))
+      if (f && (c.prevent ? f.prevention ?? [] : f.actions)[c.actionIndex]) actions.push(prepareAction(f, c.actionIndex, c.prevent))
     }
     if (rulePaths.length) {
       const per = 38 * MB
@@ -361,11 +368,12 @@ export const mockBackend: Backend = {
     const results: ActionResult[] = []
     acts.forEach((a, i) => {
       const at = 300 + i * 900
-      setTimeout(() => mockEvents.emit('exec:progress', { key: a.key, label: a.label, status: 'running', detail: '', output: '' } as ActionResult), at)
+      const info = { key: a.key, findingTitle: a.findingTitle, kind: a.kind, label: a.label }
+      setTimeout(() => mockEvents.emit('exec:progress', { ...info, status: 'running', detail: '', output: '', bytes: 0 } as ActionResult), at)
       setTimeout(() => {
         const partial = a.kind === 'quarantine' && a.items.length > 3
         const r: ActionResult = {
-          key: a.key, label: a.label, status: partial ? 'partial' : 'done',
+          ...info, status: partial ? 'partial' : 'done', bytes: partial ? a.bytes * 0.9 : a.bytes,
           detail: a.kind === 'quarantine' ? (partial ? `已移走 ${a.items.length - 1} 项，1 项被占用` : `已移走 ${a.items.length} 项`) : '已完成',
           output: a.steps.length ? a.steps.map((s) => `> ${s}\n操作成功完成。`).join('\n') : '',
         }
@@ -381,7 +389,17 @@ export const mockBackend: Backend = {
         const n = quarantined.reduce((s, a) => s + a.items.length, 0)
         mockBatches.unshift({ manifest: NEW_MANIFEST, createdAt: new Date().toISOString(), items: n, quarantined: n, restored: 0, purged: 0, other: 0, quarantinedBytes: quarantined.reduce((s, a) => s + a.bytes, 0) })
       }
-      mockEvents.emit('exec:done', { results, manifests, freedBytes: 2.1 * GB, error: '' })
+      const quarantinedBytes = results.filter((r) => r.kind === 'quarantine').reduce((s, r) => s + r.bytes, 0)
+      const freed = results.filter((r) => r.kind !== 'quarantine').reduce((s, r) => s + r.bytes, 0)
+      const tips = acts
+        .filter((a) => !a.key.includes(':p'))
+        .map((a) => mockFindings.find((f) => a.key.startsWith(f.id + ':')))
+        .filter((f, i, all): f is Finding => !!f && f.regrowth !== '' && all.indexOf(f) === i)
+        .map((f) => ({ findingId: f.id, findingTitle: f.title, text: f.regrowth }))
+      const report = { time: new Date().toISOString(), volume: 'C:\\', freeBefore: mockFree, freeAfter: mockFree + freed, results, manifests, freedBytes: freed, quarantinedBytes, tips, error: '' }
+      mockFree += freed
+      mockHistory.unshift({ time: report.time, kind: 'clean', volume: 'C:\\', freedBytes: freed, quarantinedBytes, items: results.length, actions: results.map((r) => ({ findingTitle: r.findingTitle, label: r.label, kind: r.kind, status: r.status, bytes: r.bytes })) })
+      mockEvents.emit('exec:done', report)
     }, 300 + acts.length * 900 + 800)
   },
   async ListQuarantine() {
@@ -405,7 +423,12 @@ export const mockBackend: Backend = {
     b.purged += b.quarantined
     b.quarantined = 0
     b.quarantinedBytes = 0
+    mockFree += freed
+    mockHistory.unshift({ time: new Date().toISOString(), kind: 'purge', volume: 'C:\\', freedBytes: freed, quarantinedBytes: 0, items: ex.items.length, actions: [] })
     return { execution: ex, freedBytes: freed }
+  },
+  async ListHistory() {
+    return mockHistory.map((h) => ({ ...h }))
   },
   async Elevated() {
     return false

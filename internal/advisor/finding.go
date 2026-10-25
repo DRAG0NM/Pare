@@ -15,6 +15,9 @@ type Finding struct {
 	Regrowth   string   `json:"regrowth"`
 	Evidence   []string `json:"evidence"`
 	Actions    []Action `json:"actions"`
+	// Prevention holds optional actions that stop the waste from growing back. They run
+	// through the same confirmation as Actions; quarantine is not allowed here.
+	Prevention []Action `json:"prevention"`
 }
 
 // Action kinds. Only quarantine is reversible by Pare.
@@ -56,6 +59,14 @@ func (f *Finding) normalize() {
 		}
 	}
 	f.Actions = valid
+	prevention := []Action{}
+	for _, action := range f.Prevention {
+		switch action.Kind {
+		case ActionTemplate, ActionCommand, ActionConfig, ActionManual:
+			prevention = append(prevention, action)
+		}
+	}
+	f.Prevention = prevention
 	if f.Paths == nil {
 		f.Paths = []string{}
 	}

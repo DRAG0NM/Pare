@@ -37,6 +37,8 @@ type App struct {
 	// prepared is the last confirmed-for-review execution; Execute runs exactly it.
 	prepared  *preparedRun
 	executing bool
+	// historyFile overrides the cleanup record location (tests).
+	historyFile string
 	ai        investigation
 }
 

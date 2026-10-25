@@ -64,6 +64,22 @@ const reportFindingSchema = `{
     "risk": {"type": "string", "enum": ["safe", "rebuildable", "careful", "system"], "description": "safe=纯垃圾；rebuildable=缓存可重建；careful=可能含用户数据或仍在使用；system=系统或驱动组件"},
     "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
     "regrowth": {"type": "string", "description": "清理后会不会再长出来，怎么防止"},
+    "prevention": {
+      "type": "array",
+      "description": "防止再次长出来的具体动作（可选），例如给日志设上限、关闭自动下载；kind 只能是 template、command、config、manual",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {"type": "string", "enum": ["template", "command", "config", "manual"]},
+          "label": {"type": "string"},
+          "explain": {"type": "string", "description": "做了会怎样、怎么恢复"},
+          "template": {"type": "string"},
+          "params": {"type": "object", "additionalProperties": {"type": "string"}},
+          "command": {"type": "string"}
+        },
+        "required": ["kind", "label", "explain"]
+      }
+    },
     "evidence": {"type": "array", "items": {"type": "string"}, "description": "支撑结论的具体事实，每条一句，来自工具结果"},
     "actions": {
       "type": "array",

@@ -34,7 +34,7 @@ func TestPrepareExecutionShowsWhatWouldRun(t *testing.T) {
 		},
 	}}
 
-	preview, err := app.PrepareExecution([]ChosenAction{{"f1", 0}, {"f1", 1}, {"f1", 2}, {"f1", 3}, {"missing", 0}}, nil)
+	preview, err := app.PrepareExecution([]ChosenAction{{"f1", 0, false}, {"f1", 1, false}, {"f1", 2, false}, {"f1", 3, false}, {"missing", 0, false}}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,5 +68,25 @@ func TestCheckManifestOnlyAcceptsQuarantineRecords(t *testing.T) {
 	}
 	if err := app.checkManifest(`C:\.pare-quarantine\20261024-1\manifest.json`); err != nil {
 		t.Errorf("valid manifest rejected: %v", err)
+	}
+}
+
+func TestPreventionActionsAndHistory(t *testing.T) {
+	app := NewApp()
+	app.historyFile = filepath.Join(t.TempDir(), "history.json")
+	app.findings = []advisor.Finding{{
+		ID: "f1", Title: "WSL 日志没有上限", Regrowth: "会再长",
+		Prevention: []advisor.Action{{Kind: advisor.ActionTemplate, Label: "设上限", Template: "wsl_journal_limit", Params: map[string]string{"distro": "Ubuntu", "size": "200M"}}},
+	}}
+	preview, err := app.PrepareExecution([]ChosenAction{{FindingID: "f1", ActionIndex: 0, Prevent: true}, {FindingID: "f1", ActionIndex: 3, Prevent: true}}, nil)
+	if err != nil || len(preview.Actions) != 1 || preview.Actions[0].Key != "f1:p0" || !preview.Actions[0].Runnable {
+		t.Fatalf("prevention preview = %+v, %v", preview.Actions, err)
+	}
+
+	app.recordCleanup(ExecutionReport{Volume: `C:\`, FreedBytes: 10, QuarantinedBytes: 300, Results: []ActionResult{{Label: "移入隔离区", Status: "done", Bytes: 300}, {Label: "删驱动", Status: "failed"}}})
+	app.recordCleanup(ExecutionReport{})
+	history := app.ListHistory()
+	if len(history) != 1 || history[0].Items != 1 || history[0].QuarantinedBytes != 300 || len(history[0].Actions) != 2 {
+		t.Fatalf("history = %+v", history)
 	}
 }

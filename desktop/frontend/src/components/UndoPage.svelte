@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { backend, type BatchSummary } from '../lib/api'
+  import { backend, type BatchSummary, type HistoryEntry } from '../lib/api'
   import { bytes } from '../lib/format'
 
   let batches = $state<BatchSummary[]>([])
@@ -10,12 +10,16 @@
   let messages = $state<Record<string, string>>({})
   let confirming = $state('')
   let confirmTimer: ReturnType<typeof setTimeout> | undefined
+  let history = $state<HistoryEntry[]>([])
+  let historyOpen = $state(false)
+  let entryOpen = $state<Record<number, boolean>>({})
 
   async function load() {
     loading = true
     try {
       batches = await backend.ListQuarantine()
       error = ''
+      history = (await backend.ListHistory()) ?? []
     } catch (e) {
       error = clean(e)
     } finally {
@@ -28,6 +32,7 @@
   })
 
   const clean = (e: unknown) => String(e).replace(/^Error:\s*/, '')
+  const statusText: Record<string, string> = { partial: '部分完成', skipped: '未执行', failed: '失败' }
   const pad = (n: number) => String(n).padStart(2, '0')
   function when(iso: string) {
     const d = new Date(iso)
@@ -98,6 +103,34 @@
         </div>
       </section>
     {/each}
+
+    {#if history.length}
+      <div class="history">
+        <button class="quiet" onclick={() => (historyOpen = !historyOpen)}>清理记录（{history.length}） {historyOpen ? '▾' : '▸'}</button>
+        {#if historyOpen}
+          <ul>
+            {#each history as h, i}
+              <li>
+                {#if h.kind === 'purge'}
+                  <span>{when(h.time)} · 清空隔离区 {h.items} 项 · 释放 {bytes(Math.max(0, h.freedBytes))}</span>
+                {:else}
+                  <button class="quiet line" onclick={() => (entryOpen[i] = !entryOpen[i])}>
+                    {when(h.time)} · 清理 {h.items} 项{h.freedBytes > 0 ? ` · 释放 ${bytes(h.freedBytes)}` : ''}{h.quarantinedBytes > 0 ? ` · 隔离 ${bytes(h.quarantinedBytes)}` : ''}
+                  </button>
+                  {#if entryOpen[i]}
+                    <ul class="actions">
+                      {#each h.actions as a}
+                        <li>{a.findingTitle ? `${a.findingTitle} — ` : ''}{a.label}{a.bytes > 0 ? ` · ${bytes(a.bytes)}` : ''}{a.status === 'done' ? '' : ` · ${statusText[a.status] ?? a.status}`}</li>
+                      {/each}
+                    </ul>
+                  {/if}
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -171,6 +204,35 @@
   .buttons {
     display: flex;
     gap: 8px;
+  }
+  /* The record list stays deliberately plain: it is for looking back, not a feature. */
+  .history {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .history ul {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0 0 0 12px;
+  }
+  .history li {
+    padding: 2px 0;
+  }
+  .history .actions {
+    padding-left: 16px;
+  }
+  .quiet {
+    border: none;
+    background: transparent;
+    padding: 0;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: left;
+  }
+  .quiet:hover:not(:disabled) {
+    background: transparent;
+    color: var(--text);
   }
   button.danger {
     background: var(--warn-soft);

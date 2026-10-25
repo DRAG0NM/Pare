@@ -34,6 +34,7 @@ func TestPrepareValidatesParameters(t *testing.T) {
 		"wsl_move":           {"distro": "Ubuntu & del", "target": filepath.Join(parent, "x")},
 		"wsl_set_sparse":     {"distro": ""},
 		"wsl_journal_vacuum": {"distro": "Ubuntu", "size": "100M; rm -rf /"},
+		"wsl_journal_limit":  {"distro": "Ubuntu", "size": "200M' && reboot '"},
 		"driver_delete":      {"inf": "nv_dispi.inf"},
 	} {
 		if _, err := Prepare(name, params); err == nil {

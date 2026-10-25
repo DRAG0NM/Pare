@@ -103,6 +103,7 @@ export type Finding = {
   regrowth: string
   evidence: string[]
   actions: Action[]
+  prevention?: Action[]
 }
 
 export type AIEvent = {
@@ -135,12 +136,35 @@ export type PreparedAction = {
   error: string
 }
 export type ExecutionPreview = { actions: PreparedAction[] }
-export type ActionResult = { key: string; label: string; status: 'running' | 'done' | 'partial' | 'skipped' | 'failed'; detail: string; output: string }
-export type ExecutionReport = { results: ActionResult[]; manifests: string[]; freedBytes: number; error: string }
+export type ActionResult = {
+  key: string
+  findingTitle: string
+  kind: PreparedAction['kind']
+  label: string
+  status: 'running' | 'done' | 'partial' | 'skipped' | 'failed'
+  detail: string
+  output: string
+  bytes: number
+}
+export type RegrowthTip = { findingId: string; findingTitle: string; text: string }
+export type ExecutionReport = {
+  time: string
+  volume: string
+  freeBefore: number
+  freeAfter: number
+  results: ActionResult[]
+  manifests: string[]
+  freedBytes: number
+  quarantinedBytes: number
+  tips: RegrowthTip[]
+  error: string
+}
+export type HistoryAction = { findingTitle: string; label: string; kind: string; status: string; bytes: number }
+export type HistoryEntry = { time: string; kind: 'clean' | 'purge'; volume: string; freedBytes: number; quarantinedBytes: number; items: number; actions: HistoryAction[] }
 export type BatchSummary = { manifest: string; createdAt: string; items: number; quarantined: number; restored: number; purged: number; other: number; quarantinedBytes: number }
 export type ExecutionItem = { original_path: string; quarantine_path: string; kind?: string; state: string; detail: string; allocation_size: string }
 export type Execution = { schema: string; plan_digest: string; created_at: string; updated_at: string; quarantine_dir: string; items: ExecutionItem[] }
-export type ChosenAction = { findingId: string; actionIndex: number }
+export type ChosenAction = { findingId: string; actionIndex: number; prevent?: boolean }
 
 export interface Backend {
   Elevated(): Promise<boolean>
@@ -164,6 +188,7 @@ export interface Backend {
   ListQuarantine(): Promise<BatchSummary[]>
   UndoBatch(manifest: string): Promise<Execution>
   PurgeBatch(manifest: string): Promise<{ execution: Execution; freedBytes: number }>
+  ListHistory(): Promise<HistoryEntry[]>
 }
 
 const host = window as unknown as {
