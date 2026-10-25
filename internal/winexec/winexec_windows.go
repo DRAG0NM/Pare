@@ -97,11 +97,22 @@ func oemText(data []byte) string {
 }
 
 // RunShell runs one command line through cmd.exe exactly as written. It is only used for
-// commands the user explicitly chose to run; the line is passed raw so quotes, pipes and
-// redirections behave as they would in a console.
-func RunShell(ctx context.Context, line string) (string, error) {
+// commands the AI wrote and the user explicitly chose to run; the line is passed raw so
+// quotes, pipes and redirections behave as they would in a console. When Pare is
+// elevated the command still runs as a normal user, so it cannot use administrator
+// rights unless the user explicitly allowed admin for this command; it refuses to run
+// rather than fall back to the elevated token.
+func RunShell(ctx context.Context, line string, admin bool) (string, error) {
 	command := exec.CommandContext(ctx, "cmd.exe")
 	command.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: createNoWindow, CmdLine: `cmd.exe /d /s /c "` + line + `"`}
+	if elevated() && !admin {
+		token, err := normalUserToken()
+		if err != nil {
+			return "", fmt.Errorf("无法以普通用户权限运行这条命令，已取消：%w", err)
+		}
+		defer token.Close()
+		command.SysProcAttr.Token = syscall.Token(token)
+	}
 	command.Env = append(os.Environ(), "WSL_UTF8=1")
 	var stdout, stderr bytes.Buffer
 	command.Stdout, command.Stderr = &stdout, &stderr

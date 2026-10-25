@@ -26,6 +26,9 @@ type Prepared struct {
 	Shell      string   `json:"shell,omitempty"`
 	Warnings   []string `json:"warnings"`
 	NeedsAdmin bool     `json:"needsAdmin"`
+	// Elevate lets a raw command keep Pare's administrator rights. Only the user sets it,
+	// per command, in the confirmation dialog; templates always run as Pare does.
+	Elevate bool `json:"elevate,omitempty"`
 }
 
 // Display returns the steps as one line each, the way the UI shows them.
@@ -47,6 +50,10 @@ var (
 )
 
 const irreversible = "Pare 无法撤回这个操作"
+
+// commandUnelevated tells the user that an AI-written command never gets Pare's
+// administrator rights (see winexec.RunShell).
+const commandUnelevated = "这条命令默认只以普通用户权限执行；确实需要管理员权限时，可以在下方单独勾选允许"
 
 func distro(params map[string]string) (string, error) {
 	name := params["distro"]
@@ -211,7 +218,7 @@ func PrepareCommand(line string) (Prepared, error) {
 	}
 	return Prepared{
 		Shell:    line,
-		Warnings: []string{"这是 AI 写的命令，不在 Pare 的受支持动作里，Pare 无法检查它会做什么", "请逐字读懂后再决定是否执行", irreversible},
+		Warnings: []string{"这是 AI 写的命令，不在 Pare 的受支持动作里，Pare 无法检查它会做什么", "请逐字读懂后再决定是否执行", commandUnelevated, irreversible},
 	}, nil
 }
 
@@ -220,7 +227,7 @@ func Run(ctx context.Context, prepared Prepared) (string, error) {
 	runCtx, cancel := context.WithTimeout(ctx, time.Hour)
 	defer cancel()
 	if prepared.Shell != "" {
-		return winexec.RunShell(runCtx, prepared.Shell)
+		return winexec.RunShell(runCtx, prepared.Shell, prepared.Elevate)
 	}
 	var outputs []string
 	for _, step := range prepared.Steps {

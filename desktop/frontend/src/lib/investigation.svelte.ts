@@ -20,6 +20,19 @@ export const inv = $state({
   continuing: false,
 })
 
+// The option a finding starts with. Only low-risk findings get one preselected, and only
+// a quarantine, which can be restored; templates and commands cannot be undone, and
+// careful or system findings need the user's own judgement, so they start as "skip" (-1).
+export function defaultChoice(f: Finding): number {
+  if (f.risk !== 'safe' && f.risk !== 'rebuildable') return -1
+  return f.actions.findIndex((a) => a.kind === 'quarantine')
+}
+
+// The option currently chosen for a finding.
+export function choiceOf(f: Finding): number {
+  return inv.chosen[f.id] ?? defaultChoice(f)
+}
+
 let initialized = false
 
 export function initInvestigation() {
@@ -31,7 +44,7 @@ export function initInvestigation() {
     if (e.tokens !== undefined) inv.tokens = e.tokens
     if (e.kind === 'finding' && e.finding) {
       inv.findings.push(e.finding)
-      inv.chosen[e.finding.id] = 0
+      inv.chosen[e.finding.id] = defaultChoice(e.finding)
     } else if (e.kind === 'message' && e.text) {
       inv.summary = e.text
     } else if (e.kind === 'error' && e.text) {
@@ -47,7 +60,7 @@ export function initInvestigation() {
     // The final list from the backend is authoritative.
     if (f.findings?.length) {
       inv.findings = f.findings
-      for (const x of f.findings) if (!(x.id in inv.chosen)) inv.chosen[x.id] = 0
+      for (const x of f.findings) if (!(x.id in inv.chosen)) inv.chosen[x.id] = defaultChoice(x)
     }
     inv.continuing = false
   })

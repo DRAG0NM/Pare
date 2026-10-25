@@ -1,6 +1,6 @@
 // Shared state of the confirm-and-execute flow, so both Decide tabs open the same dialog.
 import { backend, onEvent, type ActionResult, type ChosenAction, type ExecutionPreview, type ExecutionReport } from './api'
-import { inv } from './investigation.svelte'
+import { choiceOf, inv } from './investigation.svelte'
 
 export const exec = $state({
   phase: 'idle' as 'idle' | 'preparing' | 'confirm' | 'running',
@@ -9,6 +9,8 @@ export const exec = $state({
   mode: 'clean' as 'clean' | 'prevent',
   preview: null as ExecutionPreview | null,
   accepted: {} as Record<string, boolean>,
+  // admin holds the AI-written commands the user allowed to run with administrator rights.
+  admin: {} as Record<string, boolean>,
   progress: {} as Record<string, ActionResult>,
   // summary is the report of the latest cleanup run, shown on the summary page.
   summary: null as ExecutionReport | null,
@@ -82,6 +84,7 @@ async function prepare(chosen: ChosenAction[], rulePaths: string[], mode: 'clean
   exec.error = ''
   exec.progress = {}
   exec.accepted = {}
+  exec.admin = {}
   exec.preview = null
   exec.phase = 'preparing'
   try {
@@ -100,7 +103,7 @@ async function prepare(chosen: ChosenAction[], rulePaths: string[], mode: 'clean
 
 export function openConfirm(rulePaths: Iterable<string>) {
   const chosen = inv.findings
-    .map((f) => ({ findingId: f.id, actionIndex: inv.chosen[f.id] ?? 0 }))
+    .map((f) => ({ findingId: f.id, actionIndex: choiceOf(f) }))
     .filter((c) => c.actionIndex >= 0)
   return prepare(chosen, [...rulePaths], 'clean')
 }
@@ -113,11 +116,12 @@ export function openPrevention(findingId: string, actionIndex: number) {
 export async function execute() {
   if (!exec.preview) return
   const keys = exec.preview.actions.filter((a) => a.runnable && exec.accepted[a.key]).map((a) => a.key)
+  const admin = exec.preview.actions.filter((a) => a.kind === 'command' && keys.includes(a.key) && exec.admin[a.key]).map((a) => a.key)
   exec.error = ''
   exec.progress = {}
   exec.phase = 'running'
   try {
-    await backend.Execute(keys)
+    await backend.Execute(keys, admin)
   } catch (e) {
     exec.error = clean(e)
     exec.phase = 'confirm'
@@ -130,5 +134,6 @@ export function close() {
   exec.preview = null
   exec.progress = {}
   exec.accepted = {}
+  exec.admin = {}
   exec.error = ''
 }

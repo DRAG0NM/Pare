@@ -258,9 +258,10 @@ func itemView(item model.PlanItem) QuarantineItemView {
 }
 
 // Execute runs the accepted actions of the last preview, in order: quarantines first
-// (reversible), then templates and commands. Progress arrives as "exec:progress" events
-// and the report as one "exec:done" event.
-func (a *App) Execute(accepted []string) error {
+// (reversible), then templates and commands. admin lists the AI-written commands the user
+// allowed to keep administrator rights; every other command runs as a normal user.
+// Progress arrives as "exec:progress" events and the report as one "exec:done" event.
+func (a *App) Execute(accepted, admin []string) error {
 	a.mu.Lock()
 	if a.executing {
 		a.mu.Unlock()
@@ -279,6 +280,13 @@ func (a *App) Execute(accepted []string) error {
 	ok := map[string]bool{}
 	for _, key := range accepted {
 		ok[key] = true
+	}
+	for _, key := range admin {
+		if prepared, found := run.runs[key]; found && prepared.Shell != "" && ok[key] {
+			prepared.Elevate = true
+			run.runs[key] = prepared
+			a.logf("用户允许以管理员权限运行 %s", key)
+		}
 	}
 	go func() {
 		report := a.execute(run, ok, root)

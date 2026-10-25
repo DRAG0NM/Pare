@@ -14,7 +14,7 @@ func Run(ctx context.Context, argv []string) (string, error) {
 
 func Decode(data []byte) string { return string(data) }
 
-func RunShell(ctx context.Context, line string) (string, error) {
+func RunShell(ctx context.Context, line string, admin bool) (string, error) {
 	output, err := exec.CommandContext(ctx, "sh", "-c", line).CombinedOutput()
 	return string(output), err
 }

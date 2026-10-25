@@ -184,7 +184,7 @@ export interface Backend {
   AnswerConsent(id: string, allow: boolean): Promise<void>
   Findings(): Promise<Finding[]>
   PrepareExecution(chosen: ChosenAction[], rulePaths: string[]): Promise<ExecutionPreview>
-  Execute(accepted: string[]): Promise<void>
+  Execute(accepted: string[], admin: string[]): Promise<void>
   ListQuarantine(): Promise<BatchSummary[]>
   UndoBatch(manifest: string): Promise<Execution>
   PurgeBatch(manifest: string): Promise<{ execution: Execution; freedBytes: number }>

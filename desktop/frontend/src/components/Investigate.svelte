@@ -6,7 +6,7 @@
   import type { Action, Finding, InvestigationDepth } from '../lib/api'
   import { bytes, middle } from '../lib/format'
   import { openConfirm } from '../lib/execution.svelte'
-  import { inv, startInvestigation, stopInvestigation } from '../lib/investigation.svelte'
+  import { choiceOf, inv, startInvestigation, stopInvestigation } from '../lib/investigation.svelte'
   import { t } from '../lib/i18n.svelte'
   import { bt } from '../lib/backendText'
 
@@ -55,7 +55,7 @@
   const chosenActions = $derived.by(() => {
     const list: Action[] = []
     for (const f of inv.findings) {
-      const a = f.actions[inv.chosen[f.id] ?? 0]
+      const a = f.actions[choiceOf(f)]
       if (a) list.push(a)
     }
     return list
@@ -68,7 +68,7 @@
   const flowStep = $derived(inv.running || inv.findings.length === 0 ? 1 : canNext ? 3 : 2)
   const flowSteps = [
     { title: '设定范围和深度，开始深挖', hint: '范围留空就是整个扫描位置' },
-    { title: '逐条查看，选好处理方案', hint: '已默认选中推荐方案，不想处理的选「暂不处理」' },
+    { title: '逐条查看，选好处理方案', hint: '低风险、可撤回的问题已预选方案；其余默认「暂不处理」，需要时再自己选' },
     { title: '确认执行', hint: '执行前会列出每一项，再确认一次' },
   ]
   const totalParts = $derived(t('已选 {n} 个方案，预计可回收 {size}', { n: chosenActions.length, size: '\u0000' }).split('\u0000'))
@@ -188,8 +188,8 @@
           </ul>
           <h4>{t('处理方案')}</h4>
           {#each f.actions as a, i}
-            <label class="action" class:on={(inv.chosen[f.id] ?? 0) === i}>
-              <input type="radio" name="action-{f.id}" checked={(inv.chosen[f.id] ?? 0) === i} onchange={() => (inv.chosen[f.id] = i)} />
+            <label class="action" class:on={choiceOf(f) === i}>
+              <input type="radio" name="action-{f.id}" checked={choiceOf(f) === i} onchange={() => (inv.chosen[f.id] = i)} />
               <div class="abody">
                 <div class="row">
                   <span class="kind" class:warn={a.kind === 'command'}>{t(kindText[a.kind])}{a.kind === 'template' && a.template ? ` · ${a.template}` : ''}</span>
@@ -211,8 +211,8 @@
               </div>
             </label>
           {/each}
-          <label class="action skip" class:on={inv.chosen[f.id] === -1}>
-            <input type="radio" name="action-{f.id}" checked={inv.chosen[f.id] === -1} onchange={() => (inv.chosen[f.id] = -1)} />
+          <label class="action skip" class:on={choiceOf(f) === -1}>
+            <input type="radio" name="action-{f.id}" checked={choiceOf(f) === -1} onchange={() => (inv.chosen[f.id] = -1)} />
             <div class="abody"><strong>{t('暂不处理')}</strong><span class="muted small">{t('这一项先不动，也不会计入下面的统计。')}</span></div>
           </label>
         </div>
