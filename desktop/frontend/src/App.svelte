@@ -149,7 +149,8 @@
         onUndoPage={() => (view = 'undo')}
         onRescan={() => scan(summary?.root ?? target)}
         onContinue={continueInvestigation}
-        onBack={() => (view = 'home')}
+        onBack={() => (view = 'decide')}
+        onHome={() => (view = 'home')}
       />
     {:else if view === 'undo'}
       <UndoPage />

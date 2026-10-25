@@ -13,7 +13,8 @@
     onRescan,
     onContinue,
     onBack,
-  }: { report: ExecutionReport; onUndoPage: () => void; onRescan: () => void; onContinue: () => void; onBack: () => void } = $props()
+    onHome,
+  }: { report: ExecutionReport; onUndoPage: () => void; onRescan: () => void; onContinue: () => void; onBack: () => void; onHome: () => void } = $props()
 
   const kindText: Record<string, string> = { quarantine: '移入隔离区', template: '受支持动作', command: '命令', config: '修改配置', manual: '手动操作' }
   const statusText: Record<ActionResult['status'], string> = { running: '执行中', done: '完成', partial: '部分完成', skipped: '未执行', failed: '失败' }
@@ -175,7 +176,8 @@
       <button onclick={onUndoPage}>去隔离区</button>
       <button onclick={onRescan}>重新扫描</button>
       <button onclick={onContinue}>继续深挖剩下的问题</button>
-      <button class="primary" onclick={onBack}>完成</button>
+      <button onclick={onBack}>返回清理页</button>
+      <button class="primary" onclick={onHome}>回到主页</button>
     </div>
   </footer>
 </div>
