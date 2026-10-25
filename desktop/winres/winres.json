@@ -7,11 +7,18 @@
   "RT_VERSION": {
     "#1": {
       "0000": {
+        "fixed": {
+          "file_version": "0.2.0.0",
+          "product_version": "0.2.0.0"
+        },
         "info": {
           "0409": {
             "FileDescription": "Pare",
+            "FileVersion": "0.2.0",
+            "LegalCopyright": "Copyright (c) 2026 DRAG0NM. MIT License.",
             "OriginalFilename": "pare-desktop.exe",
-            "ProductName": "Pare"
+            "ProductName": "Pare",
+            "ProductVersion": "0.2.0"
           }
         }
       }
